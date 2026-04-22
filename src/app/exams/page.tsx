@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useAuth } from '@/components/auth-provider'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { BookOpen, Plus, Loader2, ChevronRight } from 'lucide-react'
+import { BookOpen, Plus, Loader2, ChevronRight, Globe } from 'lucide-react'
 
 interface ExamSetWithSyllabus {
   id: string
@@ -14,6 +15,7 @@ interface ExamSetWithSyllabus {
   grade: number
   total_questions: number
   created_at: string
+  is_public: boolean
   syllabuses: {
     title: string
     subject: string
@@ -24,15 +26,18 @@ interface ExamSetWithSyllabus {
 }
 
 export default function ExamsPage() {
+  const { session } = useAuth()
   const [exams, setExams] = useState<ExamSetWithSyllabus[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetch('/api/exam-sets')
+    const headers: Record<string, string> = {}
+    if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`
+    fetch('/api/exam-sets', { headers })
       .then(r => r.json())
-      .then(data => { setExams(data); setLoading(false) })
+      .then(data => { setExams(Array.isArray(data) ? data : []); setLoading(false) })
       .catch(() => setLoading(false))
-  }, [])
+  }, [session])
 
   if (loading) {
     return (
@@ -87,6 +92,7 @@ export default function ExamsPage() {
                         <BookOpen className="w-3 h-3 mr-1" />
                         {exam.total_questions} câu
                       </Badge>
+                      {exam.is_public && <Badge className="bg-green-100 text-green-700 border-0 text-xs"><Globe className="w-3 h-3 mr-1" />Công khai</Badge>}
                       <span className="text-xs text-gray-400 ml-auto">
                         {new Date(exam.created_at).toLocaleDateString('vi-VN')}
                       </span>

@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { useAuth } from '@/components/auth-provider'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -35,6 +36,14 @@ const HEIC_CONVERT_STEP: ProcessStep = {
 
 export default function UploadPage() {
   const router = useRouter()
+  const { user, session, loading: authLoading } = useAuth()
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push('/login')
+    }
+  }, [authLoading, user, router])
+
   const [title, setTitle] = useState('')
   const [grade, setGrade] = useState<Grade>(6)
   const [subject, setSubject] = useState('')
@@ -140,7 +149,10 @@ export default function UploadPage() {
       // Tạo syllabus
       const res = await fetch('/api/syllabuses', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+        },
         body: JSON.stringify({ title, subject, grade, image_urls: imageUrls }),
       })
       const syllabus = await res.json()
@@ -188,6 +200,8 @@ export default function UploadPage() {
       setLoading(false)
     }
   }
+
+  if (authLoading || !user) return null
 
   if (loading) {
     const currentStep = steps.find(s => s.status === 'running') || steps.find(s => s.status === 'error')

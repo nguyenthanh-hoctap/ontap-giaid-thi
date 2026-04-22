@@ -2,13 +2,14 @@
 
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
+import { useAuth } from '@/components/auth-provider'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Textarea } from '@/components/ui/textarea'
 import { ExamSet, Question } from '@/types'
-import { CheckCircle, XCircle, Loader2, BookOpen, Clock, Lightbulb, ChevronDown, ChevronUp } from 'lucide-react'
+import { CheckCircle, XCircle, Loader2, BookOpen, Clock, Lightbulb, ChevronDown, ChevronUp, Globe, Lock } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
 
@@ -17,6 +18,8 @@ type SubmitResult = {
   total: number
   results: Record<string, { correct: boolean; correct_answer: string }>
 }
+
+type ExamSetWithOwner = ExamSet & { isOwner?: boolean; is_public?: boolean }
 
 const DIFFICULTY_COLOR: Record<string, string> = {
   easy: 'bg-green-100 text-green-700',
@@ -33,23 +36,43 @@ const TYPE_LABEL: Record<string, string> = {
 
 export default function ExamPage() {
   const { id } = useParams<{ id: string }>()
-  const [examSet, setExamSet] = useState<ExamSet | null>(null)
+  const { session } = useAuth()
+  const [examSet, setExamSet] = useState<ExamSetWithOwner | null>(null)
   const [questions, setQuestions] = useState<Question[]>([])
   const [answers, setAnswers] = useState<Record<string, string>>({})
   const [result, setResult] = useState<SubmitResult | null>(null)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
+  const [togglingPublic, setTogglingPublic] = useState(false)
   const [openExplanations, setOpenExplanations] = useState<Record<string, boolean>>({})
 
   useEffect(() => {
-    fetch(`/api/exam-sets/${id}`)
+    const headers: Record<string, string> = {}
+    if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`
+
+    fetch(`/api/exam-sets/${id}`, { headers })
       .then(r => r.json())
       .then(({ examSet, questions }) => { setExamSet(examSet); setQuestions(questions); setLoading(false) })
       .catch(() => { toast.error('Không thể tải bộ đề'); setLoading(false) })
-  }, [id])
+  }, [id, session])
 
   function toggleExplanation(qId: string) {
     setOpenExplanations(prev => ({ ...prev, [qId]: !prev[qId] }))
+  }
+
+  async function handleTogglePublic() {
+    if (!session?.access_token || !examSet) return
+    setTogglingPublic(true)
+    const res = await fetch(`/api/exam-sets/${id}/toggle-public`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${session.access_token}` },
+    })
+    const data = await res.json()
+    if (res.ok) {
+      setExamSet(prev => prev ? { ...prev, is_public: data.is_public } : prev)
+      toast.success(data.is_public ? 'Đề đã được công khai' : 'Đề đã chuyển về riêng tư')
+    }
+    setTogglingPublic(false)
   }
 
   async function handleSubmit() {
@@ -66,7 +89,6 @@ export default function ExamPage() {
     const data = await res.json()
     setResult(data)
     setSubmitting(false)
-    // Auto-open explanations for wrong answers
     const wrongIds: Record<string, boolean> = {}
     Object.entries(data.results as SubmitResult['results']).forEach(([qId, r]) => {
       if (!r.correct) wrongIds[qId] = true
@@ -89,11 +111,25 @@ export default function ExamPage() {
         {/* Header */}
         <div className="mb-6">
           <Link href="/exams" className="text-indigo-600 hover:underline text-sm">← Danh sách đề</Link>
-          <h1 className="text-2xl font-bold mt-2">{examSet.title}</h1>
+          <div className="flex items-start justify-between mt-2 gap-4">
+            <h1 className="text-2xl font-bold">{examSet.title}</h1>
+            {examSet.isOwner && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleTogglePublic}
+                disabled={togglingPublic}
+                className={examSet.is_public ? 'border-green-400 text-green-700 hover:bg-green-50' : 'border-gray-300 text-gray-600'}
+              >
+                {togglingPublic ? <Loader2 className="w-4 h-4 animate-spin" /> : examSet.is_public ? <><Globe className="w-4 h-4 mr-1" />Công khai</> : <><Lock className="w-4 h-4 mr-1" />Riêng tư</>}
+              </Button>
+            )}
+          </div>
           <div className="flex gap-2 mt-2 flex-wrap">
             <Badge variant="outline">{examSet.subject}</Badge>
             <Badge variant="outline">Lớp {examSet.grade}</Badge>
             <Badge variant="outline"><BookOpen className="w-3 h-3 mr-1" />{examSet.total_questions} câu</Badge>
+            {examSet.is_public && !examSet.isOwner && <Badge className="bg-green-100 text-green-700 border-0"><Globe className="w-3 h-3 mr-1" />Công khai</Badge>}
           </div>
         </div>
 
@@ -153,14 +189,12 @@ export default function ExamPage() {
                 </CardHeader>
 
                 <CardContent className="space-y-4">
-                  {/* SVG Diagram */}
                   {q.diagram && (
                     <div className="bg-white border border-gray-200 rounded-lg p-3 flex justify-center">
                       <div dangerouslySetInnerHTML={{ __html: q.diagram }} />
                     </div>
                   )}
 
-                  {/* Trắc nghiệm / Đúng-Sai */}
                   {q.options && (
                     <div className="space-y-2">
                       {q.options.map(opt => {
@@ -188,7 +222,6 @@ export default function ExamPage() {
                     </div>
                   )}
 
-                  {/* Tự luận / Chứng minh */}
                   {isOpenType && (
                     <div>
                       <p className="text-sm text-gray-500 mb-2">
@@ -205,7 +238,6 @@ export default function ExamPage() {
                     </div>
                   )}
 
-                  {/* Nút xem lời giải (luôn hiện, kể cả trước khi nộp bài) */}
                   {q.explanation && (
                     <div>
                       <button
