@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/auth-provider'
 import { Button } from '@/components/ui/button'
-import { BookOpen, LogOut, User, Settings } from 'lucide-react'
+import { BookOpen, LogOut, Home } from 'lucide-react'
 
 export function Navbar() {
   const { user, loading, signOut } = useAuth()
@@ -20,31 +20,32 @@ export function Navbar() {
       <div className="max-w-5xl mx-auto flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2 font-bold text-indigo-600 text-lg">
           <BookOpen className="w-5 h-5" />
-          Ôn Tập Giải Đề
+          <span className="hidden sm:inline">Ôn Tập Giải Đề</span>
         </Link>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          <Link href="/">
+            <Button variant="ghost" size="sm">
+              <Home className="w-4 h-4 sm:mr-1" />
+              <span className="hidden sm:inline">Trang chủ</span>
+            </Button>
+          </Link>
+
           {!loading && (
             <>
               {user ? (
                 <>
                   <Link href="/exams">
-                    <Button variant="ghost" size="sm">Đề của tôi</Button>
+                    <Button variant="ghost" size="sm" className="hidden sm:flex">Đề của tôi</Button>
                   </Link>
                   <Link href="/profile">
-                    <Button variant="ghost" size="sm" className="hidden sm:flex items-center gap-1 text-gray-600">
-                      <User className="w-4 h-4" />
-                      {user.user_metadata?.full_name || user.email?.split('@')[0]}
-                    </Button>
-                  </Link>
-                  <Link href="/profile">
-                    <Button variant="ghost" size="sm" className="sm:hidden">
-                      <Settings className="w-4 h-4" />
+                    <Button variant="ghost" size="sm" className="text-indigo-600 font-medium max-w-[160px] truncate">
+                      {user.user_metadata?.full_name || user.email}
                     </Button>
                   </Link>
                   <Button variant="ghost" size="sm" onClick={handleSignOut}>
-                    <LogOut className="w-4 h-4 mr-1" />
-                    Đăng xuất
+                    <LogOut className="w-4 h-4 sm:mr-1" />
+                    <span className="hidden sm:inline">Đăng xuất</span>
                   </Button>
                 </>
               ) : (
