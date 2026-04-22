@@ -89,8 +89,8 @@ export default function ExamsPage() {
           <div className="flex items-center gap-3 mb-5 flex-wrap">
             <Filter className="w-4 h-4 text-gray-400" />
             <Select value={filterGrade} onValueChange={v => { if (v) { setFilterGrade(v); setFilterSubject('all') } }}>
-              <SelectTrigger className="w-32 h-8 text-sm">
-                <SelectValue placeholder="Lớp" />
+              <SelectTrigger className="w-36 h-8 text-sm">
+                <SelectValue>{filterGrade === 'all' ? 'Tất cả lớp' : `Lớp ${filterGrade}`}</SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Tất cả lớp</SelectItem>
@@ -99,7 +99,7 @@ export default function ExamsPage() {
             </Select>
             <Select value={filterSubject} onValueChange={v => v && setFilterSubject(v)}>
               <SelectTrigger className="w-36 h-8 text-sm">
-                <SelectValue placeholder="Môn học" />
+                <SelectValue>{filterSubject === 'all' ? 'Tất cả môn' : filterSubject}</SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Tất cả môn</SelectItem>
