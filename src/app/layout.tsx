@@ -3,6 +3,7 @@ import { Geist } from 'next/font/google'
 import { Toaster } from '@/components/ui/sonner'
 import { AuthProvider } from '@/components/auth-provider'
 import { Navbar } from '@/components/navbar'
+import { EmailVerifyBanner } from '@/components/email-verify-banner'
 import './globals.css'
 
 const geist = Geist({ variable: '--font-geist-sans', subsets: ['latin'] })
@@ -18,6 +19,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-full flex flex-col">
         <AuthProvider>
           <Navbar />
+          <EmailVerifyBanner />
           {children}
           <Toaster richColors position="top-center" />
         </AuthProvider>

@@ -34,21 +34,22 @@ export default function RegisterPage() {
       return
     }
     setLoading(true)
-    const { data, error } = await supabase.auth.signUp({
+    const { error: signUpError } = await supabase.auth.signUp({
       email,
       password,
       options: { data: { full_name: fullName.trim() } },
     })
-    if (error) {
-      toast.error(error.message)
+    if (signUpError) {
+      toast.error(signUpError.message)
       setLoading(false)
       return
     }
 
-    // Nếu email confirmation bật, session sẽ null
-    if (!data.session) {
-      toast.success('Đăng ký thành công! Vui lòng kiểm tra email để xác nhận tài khoản.')
-      setLoading(false)
+    // Tự đăng nhập luôn sau khi đăng ký
+    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
+    if (signInError) {
+      toast.success('Đăng ký thành công! Vui lòng đăng nhập.')
+      router.push('/login')
       return
     }
 
