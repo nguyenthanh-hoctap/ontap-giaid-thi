@@ -34,7 +34,7 @@ export default function RegisterPage() {
       return
     }
     setLoading(true)
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: { data: { full_name: fullName.trim() } },
@@ -44,6 +44,14 @@ export default function RegisterPage() {
       setLoading(false)
       return
     }
+
+    // Nếu email confirmation bật, session sẽ null
+    if (!data.session) {
+      toast.success('Đăng ký thành công! Vui lòng kiểm tra email để xác nhận tài khoản.')
+      setLoading(false)
+      return
+    }
+
     toast.success('Đăng ký thành công!')
     router.push('/exams')
   }
