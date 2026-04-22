@@ -13,18 +13,32 @@ import { Loader2 } from 'lucide-react'
 
 export default function RegisterPage() {
   const router = useRouter()
+  const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (!fullName.trim()) {
+      toast.error('Vui lòng nhập tên hiển thị')
+      return
+    }
     if (password.length < 6) {
       toast.error('Mật khẩu phải có ít nhất 6 ký tự')
       return
     }
+    if (password !== confirmPassword) {
+      toast.error('Mật khẩu xác nhận không khớp')
+      return
+    }
     setLoading(true)
-    const { error } = await supabase.auth.signUp({ email, password })
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: { full_name: fullName.trim() } },
+    })
     if (error) {
       toast.error(error.message)
       setLoading(false)
@@ -44,12 +58,20 @@ export default function RegisterPage() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
+              <Label htmlFor="fullName">Tên hiển thị</Label>
+              <Input id="fullName" placeholder="Nguyễn Văn A" value={fullName} onChange={e => setFullName(e.target.value)} required />
+            </div>
+            <div>
               <Label htmlFor="email">Email</Label>
               <Input id="email" type="email" placeholder="email@example.com" value={email} onChange={e => setEmail(e.target.value)} required />
             </div>
             <div>
               <Label htmlFor="password">Mật khẩu</Label>
               <Input id="password" type="password" placeholder="Ít nhất 6 ký tự" value={password} onChange={e => setPassword(e.target.value)} required />
+            </div>
+            <div>
+              <Label htmlFor="confirmPassword">Xác nhận mật khẩu</Label>
+              <Input id="confirmPassword" type="password" placeholder="Nhập lại mật khẩu" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required />
             </div>
             <Button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700" disabled={loading}>
               {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
