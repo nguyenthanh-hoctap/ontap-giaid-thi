@@ -9,20 +9,38 @@ export async function GET(req: NextRequest) {
     userId = user?.id ?? null
   }
 
-  let query = supabase
-    .from('exam_sets')
-    .select('*, syllabuses(title, subject, grade, status, image_urls, user_id)')
-    .order('created_at', { ascending: false })
-
-  if (userId) {
-    // Logged in: show own exams + public exams
-    query = query.or(`syllabuses.user_id.eq.${userId},is_public.eq.true`)
-  } else {
-    // Not logged in: only public exams
-    query = query.eq('is_public', true)
+  if (!userId) {
+    // Chưa đăng nhập: chỉ lấy đề public
+    const { data, error } = await supabase
+      .from('exam_sets')
+      .select('*, syllabuses(title, subject, grade, status, image_urls, user_id)')
+      .eq('is_public', true)
+      .order('created_at', { ascending: false })
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json(data)
   }
 
-  const { data, error } = await query
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json(data)
+  // Đã đăng nhập: lấy đề của mình + đề public, merge và dedup
+  const [ownRes, publicRes] = await Promise.all([
+    supabase
+      .from('exam_sets')
+      .select('*, syllabuses!inner(title, subject, grade, status, image_urls, user_id)')
+      .eq('syllabuses.user_id', userId)
+      .order('created_at', { ascending: false }),
+    supabase
+      .from('exam_sets')
+      .select('*, syllabuses(title, subject, grade, status, image_urls, user_id)')
+      .eq('is_public', true)
+      .order('created_at', { ascending: false }),
+  ])
+
+  const own = ownRes.data ?? []
+  const pub = publicRes.data ?? []
+
+  // Merge, dedup by id
+  const seen = new Set(own.map((e: { id: string }) => e.id))
+  const merged = [...own, ...pub.filter((e: { id: string }) => !seen.has(e.id))]
+  merged.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+
+  return NextResponse.json(merged)
 }

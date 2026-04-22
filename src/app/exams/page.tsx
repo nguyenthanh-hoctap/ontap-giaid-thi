@@ -1,12 +1,13 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/components/auth-provider'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { BookOpen, Plus, Loader2, ChevronRight, Globe } from 'lucide-react'
+import { BookOpen, Plus, Loader2, ChevronRight, Globe, Filter } from 'lucide-react'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 interface ExamSetWithSyllabus {
   id: string
@@ -22,13 +23,16 @@ interface ExamSetWithSyllabus {
     grade: number
     status: string
     image_urls: string[]
+    user_id: string
   }
 }
 
 export default function ExamsPage() {
-  const { session } = useAuth()
+  const { session, user } = useAuth()
   const [exams, setExams] = useState<ExamSetWithSyllabus[]>([])
   const [loading, setLoading] = useState(true)
+  const [filterGrade, setFilterGrade] = useState('all')
+  const [filterSubject, setFilterSubject] = useState('all')
 
   useEffect(() => {
     const headers: Record<string, string> = {}
@@ -38,6 +42,24 @@ export default function ExamsPage() {
       .then(data => { setExams(Array.isArray(data) ? data : []); setLoading(false) })
       .catch(() => setLoading(false))
   }, [session])
+
+  const grades = useMemo(() => {
+    const g = [...new Set(exams.map(e => e.grade))].sort((a, b) => a - b)
+    return g
+  }, [exams])
+
+  const subjects = useMemo(() => {
+    const filtered = filterGrade === 'all' ? exams : exams.filter(e => e.grade === Number(filterGrade))
+    return [...new Set(filtered.map(e => e.subject))].sort()
+  }, [exams, filterGrade])
+
+  const filtered = useMemo(() => {
+    return exams.filter(e => {
+      if (filterGrade !== 'all' && e.grade !== Number(filterGrade)) return false
+      if (filterSubject !== 'all' && e.subject !== filterSubject) return false
+      return true
+    })
+  }, [exams, filterGrade, filterSubject])
 
   if (loading) {
     return (
@@ -50,32 +72,67 @@ export default function ExamsPage() {
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
       <div className="max-w-3xl mx-auto">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <Link href="/" className="text-indigo-600 hover:underline text-sm">← Trang chủ</Link>
-            <h1 className="text-2xl font-bold mt-1">Bộ đề của bạn</h1>
-          </div>
-          <Link href="/upload">
-            <Button className="bg-indigo-600 hover:bg-indigo-700">
-              <Plus className="w-4 h-4 mr-2" />
-              Tạo đề mới
-            </Button>
-          </Link>
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-2xl font-bold">{user ? 'Bộ đề của bạn' : 'Đề công khai'}</h1>
+          {user && (
+            <Link href="/upload">
+              <Button className="bg-indigo-600 hover:bg-indigo-700">
+                <Plus className="w-4 h-4 mr-2" />
+                Tạo đề mới
+              </Button>
+            </Link>
+          )}
         </div>
 
-        {exams.length === 0 ? (
+        {/* Filters */}
+        {exams.length > 0 && (
+          <div className="flex items-center gap-3 mb-5 flex-wrap">
+            <Filter className="w-4 h-4 text-gray-400" />
+            <Select value={filterGrade} onValueChange={v => { if (v) { setFilterGrade(v); setFilterSubject('all') } }}>
+              <SelectTrigger className="w-32 h-8 text-sm">
+                <SelectValue placeholder="Lớp" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tất cả lớp</SelectItem>
+                {grades.map(g => <SelectItem key={g} value={String(g)}>Lớp {g}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Select value={filterSubject} onValueChange={v => v && setFilterSubject(v)}>
+              <SelectTrigger className="w-36 h-8 text-sm">
+                <SelectValue placeholder="Môn học" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tất cả môn</SelectItem>
+                {subjects.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            {(filterGrade !== 'all' || filterSubject !== 'all') && (
+              <button onClick={() => { setFilterGrade('all'); setFilterSubject('all') }}
+                className="text-sm text-indigo-600 hover:underline">
+                Xóa filter
+              </button>
+            )}
+            <span className="text-sm text-gray-400 ml-auto">{filtered.length} bộ đề</span>
+          </div>
+        )}
+
+        {filtered.length === 0 ? (
           <Card className="text-center py-16">
             <CardContent>
               <BookOpen className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-              <p className="text-gray-500 mb-4">Chưa có bộ đề nào</p>
-              <Link href="/upload">
-                <Button className="bg-indigo-600 hover:bg-indigo-700">Upload đề cương đầu tiên</Button>
-              </Link>
+              <p className="text-gray-500 mb-4">
+                {exams.length === 0 ? 'Chưa có bộ đề nào' : 'Không có đề phù hợp với bộ lọc'}
+              </p>
+              {user && exams.length === 0 && (
+                <Link href="/upload">
+                  <Button className="bg-indigo-600 hover:bg-indigo-700">Upload đề cương đầu tiên</Button>
+                </Link>
+              )}
             </CardContent>
           </Card>
         ) : (
           <div className="space-y-4">
-            {exams.map(exam => (
+            {filtered.map(exam => (
               <Link key={exam.id} href={`/exam/${exam.id}`}>
                 <Card className="hover:border-indigo-300 hover:shadow-md transition-all cursor-pointer">
                   <CardHeader className="pb-2">
