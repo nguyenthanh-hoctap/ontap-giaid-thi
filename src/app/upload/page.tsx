@@ -68,8 +68,8 @@ export default function UploadPage() {
   }
 
   function handleImageSelect(e: React.ChangeEvent<HTMLInputElement>): void {
-    e.target.value = ''
     const files = Array.from(e.target.files || [])
+    e.target.value = ''
 
     const validFiles = files.filter(f => {
       const isHeicFile = f.type === 'image/heic' || f.type === 'image/heif' ||
