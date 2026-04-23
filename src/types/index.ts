@@ -2,7 +2,7 @@ export type Grade = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9
 
 export const SUBJECTS: Record<string, string[]> = {
   '1-5': ['Toán', 'Tiếng Việt', 'Tiếng Anh', 'Tự nhiên và Xã hội', 'Đạo đức'],
-  '6-9': ['Toán', 'Ngữ Văn', 'Tiếng Anh', 'Vật Lý', 'Hóa Học', 'Sinh Học', 'Lịch Sử', 'Địa Lý', 'GDCD'],
+  '6-9': ['Toán', 'Ngữ Văn', 'Tiếng Anh', 'Khoa Học Tự Nhiên', 'Vật Lý', 'Hóa Học', 'Sinh Học', 'Lịch Sử', 'Địa Lý', 'GDCD'],
 }
 
 export function getSubjectsForGrade(grade: Grade): string[] {
