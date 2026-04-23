@@ -52,6 +52,8 @@ export default function UploadPage() {
   const [loading, setLoading] = useState(false)
   const [steps, setSteps] = useState<ProcessStep[]>(BASE_STEPS)
   const [hasHeic, setHasHeic] = useState(false)
+  const [duplicates, setDuplicates] = useState<{ id: string; title: string }[]>([])
+  const [showDupDialog, setShowDupDialog] = useState(false)
 
   const subjects = getSubjectsForGrade(grade)
 
@@ -97,12 +99,37 @@ export default function UploadPage() {
     setPreviews(prev => prev.filter((_, i) => i !== index))
   }
 
+  async function checkDuplicates(): Promise<{ id: string; title: string }[]> {
+    if (!session?.access_token) return []
+    const res = await fetch('/api/exam-sets', {
+      headers: { Authorization: `Bearer ${session.access_token}` },
+    })
+    const data = await res.json()
+    if (!Array.isArray(data)) return []
+    return data
+      .filter((e: { grade: number; subject: string; title: string; id: string; syllabuses?: { user_id: string } }) =>
+        e.grade === grade &&
+        e.subject === subject &&
+        e.syllabuses?.user_id === user?.id
+      )
+      .map((e: { id: string; title: string }) => ({ id: e.id, title: e.title }))
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!title || !subject || images.length === 0) {
       toast.error('Vui lòng điền đầy đủ thông tin và upload ít nhất 1 ảnh')
       return
     }
+
+    // Kiểm tra trùng lặp trước khi xử lý
+    const dups = await checkDuplicates()
+    if (dups.length > 0 && !showDupDialog) {
+      setDuplicates(dups)
+      setShowDupDialog(true)
+      return
+    }
+    setShowDupDialog(false)
 
     setLoading(true)
 
@@ -311,6 +338,31 @@ export default function UploadPage() {
               )}
             </CardContent>
           </Card>
+
+          {showDupDialog && (
+            <div className="mb-4 p-4 bg-amber-50 border border-amber-300 rounded-lg">
+              <p className="font-semibold text-amber-800 mb-2">
+                ⚠️ Bạn đã có {duplicates.length} bộ đề {subject} lớp {grade}:
+              </p>
+              <ul className="text-sm text-amber-700 mb-3 space-y-1">
+                {duplicates.map(d => (
+                  <li key={d.id} className="flex items-center gap-2">
+                    <span>•</span>
+                    <a href={`/exam/${d.id}`} target="_blank" className="underline hover:text-amber-900">{d.title}</a>
+                  </li>
+                ))}
+              </ul>
+              <p className="text-sm text-amber-700 mb-3">Bạn vẫn muốn tạo thêm bộ đề mới không?</p>
+              <div className="flex gap-2">
+                <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700" onClick={() => { setShowDupDialog(false); handleSubmit({ preventDefault: () => {} } as React.FormEvent) }}>
+                  Tạo thêm bộ đề mới
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => setShowDupDialog(false)}>
+                  Hủy
+                </Button>
+              </div>
+            </div>
+          )}
 
           <Button type="submit" size="lg" className="w-full bg-indigo-600 hover:bg-indigo-700">
             <Upload className="w-5 h-5 mr-2" />
