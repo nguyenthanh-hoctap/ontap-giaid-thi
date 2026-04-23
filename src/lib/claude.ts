@@ -108,7 +108,9 @@ const EXTRACT_RULES = (subject: string) => {
 - Câu có hình vẽ hoặc liên quan hình học: vẽ diagram SVG theo ${SVG_RULES}`
   }
   if (subject === 'Tiếng Anh') {
-    return `- Câu trắc nghiệm: type="multiple_choice"
+    return `- BỎ QUA hoàn toàn phần LISTENING / NGHE (Section Listening, Part Listening, câu nghe audio...) vì không có file âm thanh
+- Chỉ trích xuất: Reading, Grammar, Vocabulary, Writing, Speaking/câu văn viết
+- Câu trắc nghiệm: type="multiple_choice"
 - Câu đúng/sai (True/False): type="true_false", options=[{"key":"A","text":"True"},{"key":"B","text":"False"}]
 - Câu điền từ/tự luận ngắn: type="short_answer", options=null
 - Giữ nguyên tiếng Anh cho question_text và options, explanation viết tiếng Việt
