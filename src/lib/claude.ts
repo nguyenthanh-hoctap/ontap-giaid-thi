@@ -111,7 +111,11 @@ const EXTRACT_RULES = (subject: string) => {
     return `- Câu trắc nghiệm: type="multiple_choice"
 - Câu đúng/sai (True/False): type="true_false", options=[{"key":"A","text":"True"},{"key":"B","text":"False"}]
 - Câu điền từ/tự luận ngắn: type="short_answer", options=null
-- Giữ nguyên tiếng Anh cho question_text và options, explanation viết tiếng Việt`
+- Giữ nguyên tiếng Anh cho question_text và options, explanation viết tiếng Việt
+- QUAN TRỌNG — Đoạn văn / đoạn hội thoại đọc hiểu (reading passage, dialogue):
+  Đưa TOÀN BỘ đoạn văn vào đầu question_text của câu hỏi ĐẦU TIÊN trong nhóm, định dạng:
+  "[PASSAGE]\n{toàn bộ đoạn văn}\n[/PASSAGE]\n\n{câu hỏi}"
+  Các câu tiếp theo trong cùng nhóm cũng ghi lại [PASSAGE]...[/PASSAGE] để học sinh không mất ngữ cảnh`
   }
   return `- Câu trắc nghiệm 4 đáp án: type="multiple_choice"
 - Câu đúng/sai: type="true_false", options=[{"key":"A","text":"Đúng"},{"key":"B","text":"Sai"}]

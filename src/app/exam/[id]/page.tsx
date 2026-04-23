@@ -13,6 +13,22 @@ import { CheckCircle, XCircle, Loader2, BookOpen, Clock, Lightbulb, ChevronDown,
 import { toast } from 'sonner'
 import Link from 'next/link'
 
+function QuestionText({ text }: { text: string }) {
+  const passageMatch = text.match(/^\[PASSAGE\]([\s\S]*?)\[\/PASSAGE\]\s*\n*([\s\S]*)$/)
+  if (passageMatch) {
+    return (
+      <div className="space-y-3 flex-1">
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
+          <span className="text-xs font-semibold text-blue-600 uppercase tracking-wide block mb-1">Đoạn văn</span>
+          {passageMatch[1].trim()}
+        </div>
+        <span className="text-base font-medium">{passageMatch[2].trim()}</span>
+      </div>
+    )
+  }
+  return <span className="flex-1">{text}</span>
+}
+
 type SubmitResult = {
   score: number
   total: number
@@ -179,7 +195,7 @@ export default function ExamPage() {
                   <div className="flex items-start justify-between gap-2">
                     <CardTitle className="text-base font-medium leading-relaxed flex-1">
                       <span className="text-indigo-600 font-bold mr-2">Câu {index + 1}.</span>
-                      {q.question_text}
+                      <QuestionText text={q.question_text} />
                     </CardTitle>
                     <div className="flex gap-1.5 shrink-0">
                       <Badge className={`text-xs ${DIFFICULTY_COLOR[q.difficulty]}`}>{DIFFICULTY_LABEL[q.difficulty]}</Badge>
