@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/auth-provider'
 import { Button } from '@/components/ui/button'
-import { BookOpen, LogOut, Home } from 'lucide-react'
+import { BookOpen, LogOut, Home, HelpCircle } from 'lucide-react'
 
 export function Navbar() {
   const { user, loading, signOut } = useAuth()
@@ -28,6 +28,12 @@ export function Navbar() {
             <Button variant="ghost" size="sm">
               <Home className="w-4 h-4 sm:mr-1" />
               <span className="hidden sm:inline">Trang chủ</span>
+            </Button>
+          </Link>
+          <Link href="/huong-dan">
+            <Button variant="ghost" size="sm">
+              <HelpCircle className="w-4 h-4 sm:mr-1" />
+              <span className="hidden sm:inline">Hướng dẫn</span>
             </Button>
           </Link>
 
