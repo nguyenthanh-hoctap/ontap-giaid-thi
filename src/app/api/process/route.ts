@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin as supabase } from '@/lib/supabase-server'
 import { extractTextFromImages } from '@/lib/gemini'
-import { generateExamQuestions } from '@/lib/claude'
+import { extractExamQuestions } from '@/lib/claude'
 
 export const maxDuration = 300
 
@@ -25,12 +25,11 @@ export async function POST(req: NextRequest) {
     const extractedContent = await extractTextFromImages(syllabus.image_urls)
     await supabase.from('syllabuses').update({ extracted_content: extractedContent }).eq('id', syllabus_id)
 
-    // 4. Sinh câu hỏi bằng Claude
-    const questions = await generateExamQuestions(
+    // 4. Trích xuất câu hỏi từ đề thi
+    const questions = await extractExamQuestions(
       extractedContent,
       syllabus.subject,
       syllabus.grade,
-      20
     )
 
     // 5. Tạo exam set

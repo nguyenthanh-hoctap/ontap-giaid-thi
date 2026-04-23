@@ -99,155 +99,47 @@ async function callClaude(prompt: string): Promise<Omit<Question, 'id' | 'exam_s
   return JSON.parse(repaired)
 }
 
-async function generateForMath(content: string, grade: number, count: number) {
-  const half = Math.ceil(count / 2)
-
-  const batch1Promise = callClaude(`Bạn là giáo viên Toán lớp ${grade}. Từ đề cương sau, tạo ${half} câu hỏi cho các chủ đề ĐẠI SỐ, XÁC SUẤT, THỐNG KÊ (KHÔNG tạo câu về hình học hay chứng minh hình học).
-
-ĐỀ CƯƠNG:
-${content}
-
-Loại câu: mix multiple_choice, true_false, short_answer. Độ khó: 40% easy, 40% medium, 20% hard.
-${JSON_FORMAT}`)
-
-  const batch2Promise = callClaude(`Bạn là giáo viên Toán lớp ${grade}. Từ đề cương sau, tạo ${count - half - 2} câu hỏi multiple_choice và short_answer về HÌNH HỌC.
-
-ĐỀ CƯƠNG:
-${content}
-
-${SVG_RULES}
-
-- Mỗi câu hình học PHẢI có diagram SVG chính xác theo quy tắc trên
-${JSON_FORMAT}`)
-
-  const batch3Promise = callClaude(`Bạn là giáo viên Toán lớp ${grade}. Từ đề cương sau, tạo ĐÚNG 2 câu chứng minh tam giác, type PHẢI là "proof".
-
-ĐỀ CƯƠNG:
-${content}
-
-${SVG_RULES}
-
-Mỗi câu proof:
-- question_text: nêu đầy đủ bài toán (cho biết gì, cần chứng minh gì)
-- correct_answer: các bước chứng minh chi tiết
-- explanation: hướng dẫn giải từng bước
-- diagram: SVG vẽ hình tam giác chính xác theo quy tắc trên
-- options: null
-- difficulty: "hard"
-
-${JSON_FORMAT}`)
-
-  const [b1, b2, b3] = await Promise.all([batch1Promise, batch2Promise, batch3Promise])
-  return [...b1, ...b2, ...b3]
+const EXTRACT_RULES = (subject: string) => {
+  if (subject === 'Toán') {
+    return `- Câu trắc nghiệm 4 đáp án: type="multiple_choice"
+- Câu đúng/sai: type="true_false", options=[{"key":"A","text":"Đúng"},{"key":"B","text":"Sai"}]
+- Câu tự luận/tính toán ngắn: type="short_answer", options=null
+- Câu chứng minh hình học: type="proof", options=null
+- Câu có hình vẽ hoặc liên quan hình học: vẽ diagram SVG theo ${SVG_RULES}`
+  }
+  if (subject === 'Tiếng Anh') {
+    return `- Câu trắc nghiệm: type="multiple_choice"
+- Câu đúng/sai (True/False): type="true_false", options=[{"key":"A","text":"True"},{"key":"B","text":"False"}]
+- Câu điền từ/tự luận ngắn: type="short_answer", options=null
+- Giữ nguyên tiếng Anh cho question_text và options, explanation viết tiếng Việt`
+  }
+  return `- Câu trắc nghiệm 4 đáp án: type="multiple_choice"
+- Câu đúng/sai: type="true_false", options=[{"key":"A","text":"Đúng"},{"key":"B","text":"Sai"}]
+- Câu tự luận/ngắn: type="short_answer", options=null`
 }
 
-async function generateForEnglish(content: string, grade: number, count: number) {
-  const half = Math.ceil(count / 2)
-  const b1 = callClaude(`Bạn là giáo viên Tiếng Anh lớp ${grade}. Từ đề cương sau, tạo ${half} câu hỏi về NGỮ PHÁP và TỪ VỰNG (grammar, vocabulary, sentence structure).
-
-ĐỀ CƯƠNG:
-${content}
-
-Loại câu: multiple_choice. Viết câu hỏi và đáp án bằng tiếng Anh, explanation bằng tiếng Việt. Độ khó: 40% easy, 40% medium, 20% hard.
-${JSON_FORMAT}`)
-
-  const b2 = callClaude(`Bạn là giáo viên Tiếng Anh lớp ${grade}. Từ đề cương sau, tạo ${count - half} câu hỏi về KỸ NĂNG ĐỌC HIỂU và VẬN DỤNG (reading comprehension, fill-in-the-blank, error correction).
-
-ĐỀ CƯƠNG:
-${content}
-
-Loại câu: mix multiple_choice, true_false, short_answer. Câu hỏi và đáp án bằng tiếng Anh, explanation bằng tiếng Việt. Độ khó: 40% easy, 40% medium, 20% hard.
-${JSON_FORMAT}`)
-
-  return [...(await b1), ...(await Promise.resolve(b2))]
-}
-
-async function generateForVietnamese(content: string, subject: string, grade: number, count: number) {
-  const half = Math.ceil(count / 2)
-  const b1 = callClaude(`Bạn là giáo viên ${subject} lớp ${grade}. Từ đề cương sau, tạo ${half} câu hỏi về ĐỌC HIỂU VĂN BẢN và NỘI DUNG TÁC PHẨM (nhân vật, chủ đề, ý nghĩa, nghệ thuật).
-
-ĐỀ CƯƠNG:
-${content}
-
-Loại câu: multiple_choice. Độ khó: 40% easy, 40% medium, 20% hard.
-${JSON_FORMAT}`)
-
-  const b2 = callClaude(`Bạn là giáo viên ${subject} lớp ${grade}. Từ đề cương sau, tạo ${count - half} câu hỏi về TIẾNG VIỆT THỰC HÀNH (từ loại, câu, biện pháp tu từ, chính tả, ngữ pháp).
-
-ĐỀ CƯƠNG:
-${content}
-
-Loại câu: mix multiple_choice, true_false, short_answer. Độ khó: 40% easy, 40% medium, 20% hard.
-${JSON_FORMAT}`)
-
-  const [r1, r2] = await Promise.all([b1, b2])
-  return [...r1, ...r2]
-}
-
-async function generateForNaturalScience(content: string, grade: number, count: number) {
-  const half = Math.ceil(count / 2)
-  const b1 = callClaude(`Bạn là giáo viên Khoa Học Tự Nhiên lớp ${grade}. Từ đề cương sau, tạo ${half} câu hỏi LÝ THUYẾT về các khái niệm, định nghĩa, quy luật sinh học/vật lý/hóa học trong đề cương.
-
-ĐỀ CƯƠNG:
-${content}
-
-Loại câu: multiple_choice. Độ khó: 40% easy, 40% medium, 20% hard. Câu hỏi phải bám sát NỘI DUNG ĐỀ CƯƠNG, không bịa thêm kiến thức ngoài.
-${JSON_FORMAT}`)
-
-  const b2 = callClaude(`Bạn là giáo viên Khoa Học Tự Nhiên lớp ${grade}. Từ đề cương sau, tạo ${count - half} câu hỏi VẬN DỤNG và THỰC HÀNH (giải thích hiện tượng, thí nghiệm, ứng dụng thực tế).
-
-ĐỀ CƯƠNG:
-${content}
-
-Loại câu: mix multiple_choice, true_false, short_answer. Độ khó: 40% easy, 40% medium, 20% hard. Câu hỏi phải bám sát NỘI DUNG ĐỀ CƯƠNG.
-${JSON_FORMAT}`)
-
-  const [r1, r2] = await Promise.all([b1, b2])
-  return [...r1, ...r2]
-}
-
-async function generateForGeneral(content: string, subject: string, grade: number, count: number) {
-  const half = Math.ceil(count / 2)
-  const b1 = callClaude(`Bạn là giáo viên ${subject} lớp ${grade}. Từ đề cương sau, tạo ${half} câu hỏi NHẬN BIẾT và THÔNG HIỂU bám sát nội dung đề cương.
-
-ĐỀ CƯƠNG:
-${content}
-
-Loại câu: multiple_choice. Độ khó: 40% easy, 40% medium, 20% hard. Chỉ ra câu hỏi đúng với môn ${subject}.
-${JSON_FORMAT}`)
-
-  const b2 = callClaude(`Bạn là giáo viên ${subject} lớp ${grade}. Từ đề cương sau, tạo ${count - half} câu hỏi VẬN DỤNG bám sát nội dung đề cương.
-
-ĐỀ CƯƠNG:
-${content}
-
-Loại câu: mix true_false, short_answer. Độ khó: 40% easy, 40% medium, 20% hard. Chỉ ra câu hỏi đúng với môn ${subject}.
-${JSON_FORMAT}`)
-
-  const [r1, r2] = await Promise.all([b1, b2])
-  return [...r1, ...r2]
-}
-
-export async function generateExamQuestions(
+export async function extractExamQuestions(
   content: string,
   subject: string,
   grade: number,
-  count = 20
 ): Promise<Omit<Question, 'id' | 'exam_set_id'>[]> {
-  let raw: Omit<Question, 'id' | 'exam_set_id'>[]
+  const prompt = `Bạn là giáo viên ${subject} lớp ${grade}. Dưới đây là nội dung đề thi được trích xuất từ ảnh.
 
-  if (subject === 'Toán') {
-    raw = await generateForMath(content, grade, count)
-  } else if (subject === 'Tiếng Anh') {
-    raw = await generateForEnglish(content, grade, count)
-  } else if (subject === 'Ngữ Văn' || subject === 'Tiếng Việt') {
-    raw = await generateForVietnamese(content, subject, grade, count)
-  } else if (subject === 'Khoa Học Tự Nhiên') {
-    raw = await generateForNaturalScience(content, grade, count)
-  } else {
-    raw = await generateForGeneral(content, subject, grade, count)
-  }
+NHIỆM VỤ: Trích xuất TẤT CẢ câu hỏi có trong đề, ĐÚNG số lượng, ĐÚNG nội dung — KHÔNG thêm, KHÔNG bớt, KHÔNG thay đổi câu hỏi.
 
+NỘI DUNG ĐỀ THI:
+${content}
+
+QUY TẮC TRÍCH XUẤT:
+${EXTRACT_RULES(subject)}
+- difficulty: dựa vào mức độ câu hỏi — "easy" (nhận biết), "medium" (thông hiểu), "hard" (vận dụng)
+- correct_answer: điền đáp án đúng dựa trên kiến thức ${subject} lớp ${grade}; nếu đề có ghi đáp án thì dùng đáp án đó
+- explanation: giải thích ngắn gọn tại sao đó là đáp án đúng
+- Giữ nguyên số thứ tự câu như trong đề cho order_number
+
+${JSON_FORMAT}`
+
+  const raw = await callClaude(prompt)
   return raw
     .filter(q => q.question_text && q.correct_answer)
     .map((q, i) => ({ ...q, order_number: i + 1 }))

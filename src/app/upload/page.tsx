@@ -23,7 +23,7 @@ type ProcessStep = {
 const BASE_STEPS: ProcessStep[] = [
   { id: 'upload', label: 'Upload ảnh', description: 'Đang tải ảnh lên máy chủ...', status: 'waiting' },
   { id: 'ocr', label: 'Đọc nội dung', description: 'AI đang đọc và nhận diện chữ trong ảnh...', status: 'waiting' },
-  { id: 'generate', label: 'Tạo câu hỏi', description: 'AI đang soạn câu hỏi và đáp án...', status: 'waiting' },
+  { id: 'generate', label: 'Trích xuất câu hỏi', description: 'AI đang trích xuất câu hỏi và đáp án từ đề...', status: 'waiting' },
   { id: 'done', label: 'Hoàn thành', description: 'Bộ đề đã sẵn sàng!', status: 'waiting' },
 ]
 
@@ -266,7 +266,7 @@ export default function UploadPage() {
               {currentStep.id === 'convert' && 'Ảnh iPhone (HEIC) cần chuyển sang JPEG trước khi xử lý, vui lòng chờ 10-20 giây...'}
               {currentStep.id === 'upload' && 'Đang tải ảnh lên máy chủ...'}
               {currentStep.id === 'ocr' && 'AI đang đọc và nhận diện nội dung đề cương, mất khoảng 15-20 giây...'}
-              {currentStep.id === 'generate' && 'AI đang soạn câu hỏi, đáp án và hướng dẫn, mất khoảng 30-45 giây...'}
+              {currentStep.id === 'generate' && 'AI đang trích xuất câu hỏi từ đề thi, mất khoảng 15-30 giây...'}
             </p>
           )}
         </Card>
