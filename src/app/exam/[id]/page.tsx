@@ -48,22 +48,28 @@ function SpeakButton({ text, lang = 'en-US' }: { text: string; lang?: string }) 
   )
 }
 
-function QuestionText({ text, subject }: { text: string; subject?: string }) {
+function QuestionText({ text, subject, seenPassages }: { text: string; subject?: string; seenPassages: Set<string> }) {
   const passageMatch = text.match(/^\[PASSAGE\]([\s\S]*?)\[\/PASSAGE\]\s*\n*([\s\S]*)$/)
   const isEnglish = subject === 'Tiếng Anh'
 
   if (passageMatch) {
     const passage = passageMatch[1].trim()
+    const question = passageMatch[2].trim()
+    const alreadySeen = seenPassages.has(passage)
+    if (!alreadySeen) seenPassages.add(passage)
+
     return (
       <div className="space-y-3 flex-1">
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold text-blue-600 uppercase tracking-wide">Đoạn văn</span>
-            {isEnglish && <SpeakButton text={passage} lang="en-US" />}
+        {!alreadySeen && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-semibold text-blue-600 uppercase tracking-wide">Đoạn văn</span>
+              {isEnglish && <SpeakButton text={passage} lang="en-US" />}
+            </div>
+            {passage}
           </div>
-          {passage}
-        </div>
-        <span className="text-base font-medium">{passageMatch[2].trim()}</span>
+        )}
+        <span className="text-base font-medium">{question}</span>
       </div>
     )
   }
@@ -221,6 +227,10 @@ export default function ExamPage() {
         {/* Questions */}
         <div className="space-y-6">
           {questions.map((q, index) => {
+            const seenPassages = new Set<string>(questions.slice(0, index).map(prev => {
+              const m = prev.question_text.match(/^\[PASSAGE\]([\s\S]*?)\[\/PASSAGE\]/)
+              return m ? m[1].trim() : ''
+            }).filter(Boolean))
             const userAnswer = answers[q.id]
             const res = result?.results[q.id]
             const isOpenType = q.type === 'short_answer' || q.type === 'proof'
@@ -236,7 +246,7 @@ export default function ExamPage() {
                   <div className="flex items-start justify-between gap-2">
                     <CardTitle className="text-base font-medium leading-relaxed flex-1">
                       <span className="text-indigo-600 font-bold mr-2">Câu {index + 1}.</span>
-                      <QuestionText text={q.question_text} subject={examSet?.subject} />
+                      <QuestionText text={q.question_text} subject={examSet?.subject} seenPassages={seenPassages} />
                     </CardTitle>
                     <div className="flex gap-1.5 shrink-0">
                       <Badge className={`text-xs ${DIFFICULTY_COLOR[q.difficulty]}`}>{DIFFICULTY_LABEL[q.difficulty]}</Badge>

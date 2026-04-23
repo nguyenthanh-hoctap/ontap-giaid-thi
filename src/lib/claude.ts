@@ -117,7 +117,7 @@ const EXTRACT_RULES = (subject: string) => {
 - QUAN TRỌNG — Đoạn văn / đoạn hội thoại đọc hiểu (reading passage, dialogue):
   Đưa TOÀN BỘ đoạn văn vào đầu question_text của câu hỏi ĐẦU TIÊN trong nhóm, định dạng:
   "[PASSAGE]\n{toàn bộ đoạn văn}\n[/PASSAGE]\n\n{câu hỏi}"
-  Các câu tiếp theo trong cùng nhóm cũng ghi lại [PASSAGE]...[/PASSAGE] để học sinh không mất ngữ cảnh`
+  Các câu tiếp theo trong cùng nhóm KHÔNG lặp lại [PASSAGE], chỉ ghi nội dung câu hỏi bình thường`
   }
   return `- Câu trắc nghiệm 4 đáp án: type="multiple_choice"
 - Câu đúng/sai: type="true_false", options=[{"key":"A","text":"Đúng"},{"key":"B","text":"Sai"}]
