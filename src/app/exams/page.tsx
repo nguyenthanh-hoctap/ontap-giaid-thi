@@ -6,7 +6,7 @@ import { useAuth } from '@/components/auth-provider'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { BookOpen, Plus, Loader2, ChevronRight, Globe, Filter } from 'lucide-react'
+import { BookOpen, Plus, Loader2, ChevronRight, Globe, Filter, Trash2 } from 'lucide-react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 interface ExamSetWithSyllabus {
@@ -31,6 +31,7 @@ export default function ExamsPage() {
   const { session, user } = useAuth()
   const [exams, setExams] = useState<ExamSetWithSyllabus[]>([])
   const [loading, setLoading] = useState(true)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
   const [filterGrade, setFilterGrade] = useState('all')
   const [filterSubject, setFilterSubject] = useState('all')
 
@@ -42,6 +43,18 @@ export default function ExamsPage() {
       .then(data => { setExams(Array.isArray(data) ? data : []); setLoading(false) })
       .catch(() => setLoading(false))
   }, [session])
+
+  async function handleDelete(e: React.MouseEvent, examId: string) {
+    e.preventDefault()
+    if (!confirm('Xóa bộ đề này? Hành động không thể hoàn tác.')) return
+    setDeletingId(examId)
+    const res = await fetch(`/api/exam-sets/${examId}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${session?.access_token}` },
+    })
+    if (res.ok) setExams(prev => prev.filter(e => e.id !== examId))
+    setDeletingId(null)
+  }
 
   const grades = useMemo(() => {
     const g = [...new Set(exams.map(e => e.grade))].sort((a, b) => a - b)
@@ -132,32 +145,48 @@ export default function ExamsPage() {
           </Card>
         ) : (
           <div className="space-y-4">
-            {filtered.map(exam => (
-              <Link key={exam.id} href={`/exam/${exam.id}`}>
-                <Card className="hover:border-indigo-300 hover:shadow-md transition-all cursor-pointer">
-                  <CardHeader className="pb-2">
-                    <div className="flex items-start justify-between">
-                      <CardTitle className="text-base">{exam.title}</CardTitle>
-                      <ChevronRight className="w-5 h-5 text-gray-400 shrink-0 mt-0.5" />
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <Badge variant="outline">{exam.subject}</Badge>
-                      <Badge variant="outline">Lớp {exam.grade}</Badge>
-                      <Badge variant="outline">
-                        <BookOpen className="w-3 h-3 mr-1" />
-                        {exam.total_questions} câu
-                      </Badge>
-                      {exam.is_public && <Badge className="bg-green-100 text-green-700 border-0 text-xs"><Globe className="w-3 h-3 mr-1" />Công khai</Badge>}
-                      <span className="text-xs text-gray-400 ml-auto">
-                        {new Date(exam.created_at).toLocaleDateString('vi-VN')}
-                      </span>
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
+            {filtered.map(exam => {
+              const isOwner = user && exam.syllabuses?.user_id === user.id
+              return (
+                <div key={exam.id} className="relative group">
+                  <Link href={`/exam/${exam.id}`}>
+                    <Card className="hover:border-indigo-300 hover:shadow-md transition-all cursor-pointer">
+                      <CardHeader className="pb-2">
+                        <div className="flex items-start justify-between">
+                          <CardTitle className="text-base pr-8">{exam.title}</CardTitle>
+                          <ChevronRight className="w-5 h-5 text-gray-400 shrink-0 mt-0.5" />
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Badge variant="outline">{exam.subject}</Badge>
+                          <Badge variant="outline">Lớp {exam.grade}</Badge>
+                          <Badge variant="outline">
+                            <BookOpen className="w-3 h-3 mr-1" />
+                            {exam.total_questions} câu
+                          </Badge>
+                          {exam.is_public && <Badge className="bg-green-100 text-green-700 border-0 text-xs"><Globe className="w-3 h-3 mr-1" />Công khai</Badge>}
+                          <span className="text-xs text-gray-400 ml-auto">
+                            {new Date(exam.created_at).toLocaleDateString('vi-VN')}
+                          </span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                  {isOwner && (
+                    <button
+                      onClick={e => handleDelete(e, exam.id)}
+                      disabled={deletingId === exam.id}
+                      className="absolute top-3 right-8 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-md hover:bg-red-50 text-gray-300 hover:text-red-500"
+                    >
+                      {deletingId === exam.id
+                        ? <Loader2 className="w-4 h-4 animate-spin" />
+                        : <Trash2 className="w-4 h-4" />}
+                    </button>
+                  )}
+                </div>
+              )
+            })}
           </div>
         )}
       </div>
