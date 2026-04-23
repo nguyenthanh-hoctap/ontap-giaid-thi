@@ -99,16 +99,10 @@ async function callClaude(prompt: string): Promise<Omit<Question, 'id' | 'exam_s
   return JSON.parse(repaired)
 }
 
-export async function generateExamQuestions(
-  content: string,
-  subject: string,
-  grade: number,
-  count = 20
-): Promise<Omit<Question, 'id' | 'exam_set_id'>[]> {
+async function generateForMath(content: string, grade: number, count: number) {
   const half = Math.ceil(count / 2)
 
-  // Lần 1: câu hỏi cho các chủ đề KHÔNG phải hình học/chứng minh
-  const batch1Promise = callClaude(`Bạn là giáo viên ${subject} lớp ${grade}. Từ đề cương sau, tạo ${half} câu hỏi cho các chủ đề ĐẠI SỐ, XÁC SUẤT, THỐNG KÊ (KHÔNG tạo câu về hình học hay chứng minh hình học).
+  const batch1Promise = callClaude(`Bạn là giáo viên Toán lớp ${grade}. Từ đề cương sau, tạo ${half} câu hỏi cho các chủ đề ĐẠI SỐ, XÁC SUẤT, THỐNG KÊ (KHÔNG tạo câu về hình học hay chứng minh hình học).
 
 ĐỀ CƯƠNG:
 ${content}
@@ -116,8 +110,7 @@ ${content}
 Loại câu: mix multiple_choice, true_false, short_answer. Độ khó: 40% easy, 40% medium, 20% hard.
 ${JSON_FORMAT}`)
 
-  // Lần 2: câu hỏi HÌNH HỌC trắc nghiệm/ngắn
-  const batch2Promise = callClaude(`Bạn là giáo viên ${subject} lớp ${grade}. Từ đề cương sau, tạo ${count - half - 2} câu hỏi multiple_choice và short_answer về HÌNH HỌC.
+  const batch2Promise = callClaude(`Bạn là giáo viên Toán lớp ${grade}. Từ đề cương sau, tạo ${count - half - 2} câu hỏi multiple_choice và short_answer về HÌNH HỌC.
 
 ĐỀ CƯƠNG:
 ${content}
@@ -127,8 +120,7 @@ ${SVG_RULES}
 - Mỗi câu hình học PHẢI có diagram SVG chính xác theo quy tắc trên
 ${JSON_FORMAT}`)
 
-  // Lần 3: CHỨNG MINH tam giác (riêng để đảm bảo có)
-  const batch3Promise = callClaude(`Bạn là giáo viên ${subject} lớp ${grade}. Từ đề cương sau, tạo ĐÚNG 2 câu chứng minh tam giác, type PHẢI là "proof".
+  const batch3Promise = callClaude(`Bạn là giáo viên Toán lớp ${grade}. Từ đề cương sau, tạo ĐÚNG 2 câu chứng minh tam giác, type PHẢI là "proof".
 
 ĐỀ CƯƠNG:
 ${content}
@@ -145,12 +137,44 @@ Mỗi câu proof:
 
 ${JSON_FORMAT}`)
 
-  const [batch1, batch2, batch3] = await Promise.all([batch1Promise, batch2Promise, batch3Promise])
+  const [b1, b2, b3] = await Promise.all([batch1Promise, batch2Promise, batch3Promise])
+  return [...b1, ...b2, ...b3]
+}
 
-  // Gộp lại, đánh lại order_number
-  const all = [...batch1, ...batch2, ...batch3]
+async function generateForOtherSubject(content: string, subject: string, grade: number, count: number) {
+  const half = Math.ceil(count / 2)
+
+  const batch1Promise = callClaude(`Bạn là giáo viên ${subject} lớp ${grade}. Từ đề cương sau, tạo ${half} câu hỏi trắc nghiệm (multiple_choice) bám sát NỘI DUNG ĐỀ CƯƠNG.
+
+ĐỀ CƯƠNG:
+${content}
+
+Độ khó: 40% easy, 40% medium, 20% hard. Câu hỏi phải đúng với môn ${subject}, KHÔNG tạo câu Toán hay hình học.
+${JSON_FORMAT}`)
+
+  const batch2Promise = callClaude(`Bạn là giáo viên ${subject} lớp ${grade}. Từ đề cương sau, tạo ${count - half} câu hỏi dạng true_false và short_answer bám sát NỘI DUNG ĐỀ CƯƠNG.
+
+ĐỀ CƯƠNG:
+${content}
+
+Độ khó: 40% easy, 40% medium, 20% hard. Câu hỏi phải đúng với môn ${subject}, KHÔNG tạo câu Toán hay hình học.
+${JSON_FORMAT}`)
+
+  const [b1, b2] = await Promise.all([batch1Promise, batch2Promise])
+  return [...b1, ...b2]
+}
+
+export async function generateExamQuestions(
+  content: string,
+  subject: string,
+  grade: number,
+  count = 20
+): Promise<Omit<Question, 'id' | 'exam_set_id'>[]> {
+  const raw = subject === 'Toán'
+    ? await generateForMath(content, grade, count)
+    : await generateForOtherSubject(content, subject, grade, count)
+
+  return raw
     .filter(q => q.question_text && q.correct_answer)
     .map((q, i) => ({ ...q, order_number: i + 1 }))
-
-  return all
 }
