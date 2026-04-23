@@ -1,6 +1,21 @@
 import Anthropic from '@anthropic-ai/sdk'
+import convert from 'heic-convert'
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+
+async function toJpegBuffer(buffer: Buffer, url: string, contentType: string): Promise<{ data: Buffer, mediaType: 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp' }> {
+  const isHeic = contentType.includes('heic') || contentType.includes('heif') ||
+    /\.(heic|heif)(\?|$)/i.test(url)
+
+  if (isHeic) {
+    const jpegBuffer = await convert({ buffer: buffer as unknown as ArrayBuffer, format: 'JPEG', quality: 0.85 })
+    return { data: Buffer.from(jpegBuffer), mediaType: 'image/jpeg' }
+  }
+
+  const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'] as const
+  const mediaType = (validTypes.find(t => contentType.includes(t)) || 'image/jpeg') as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp'
+  return { data: buffer, mediaType }
+}
 
 export async function extractTextFromImages(imageUrls: string[]): Promise<string> {
   const imageContents = await Promise.all(
@@ -8,11 +23,10 @@ export async function extractTextFromImages(imageUrls: string[]): Promise<string
       const res = await fetch(url)
       const buffer = Buffer.from(await res.arrayBuffer())
       const ct = res.headers.get('content-type') || ''
-      const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
-      const mediaType = (validTypes.find((t) => ct.includes(t)) || 'image/jpeg') as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp'
+      const { data, mediaType } = await toJpegBuffer(buffer, url, ct)
       return {
         type: 'image' as const,
-        source: { type: 'base64' as const, media_type: mediaType, data: buffer.toString('base64') },
+        source: { type: 'base64' as const, media_type: mediaType, data: data.toString('base64') },
       }
     })
   )

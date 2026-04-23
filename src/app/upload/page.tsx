@@ -27,12 +27,6 @@ const BASE_STEPS: ProcessStep[] = [
   { id: 'done', label: 'Hoàn thành', description: 'Bộ đề đã sẵn sàng!', status: 'waiting' },
 ]
 
-const HEIC_CONVERT_STEP: ProcessStep = {
-  id: 'convert',
-  label: 'Chuyển đổi ảnh iPhone',
-  description: 'Đang chuyển ảnh HEIC sang JPEG, có thể mất 10-20 giây...',
-  status: 'waiting',
-}
 
 export default function UploadPage() {
   const router = useRouter()
@@ -51,7 +45,6 @@ export default function UploadPage() {
   const [previews, setPreviews] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
   const [steps, setSteps] = useState<ProcessStep[]>(BASE_STEPS)
-  const [hasHeic, setHasHeic] = useState(false)
   const [duplicates, setDuplicates] = useState<{ id: string; title: string }[]>([])
   const [showDupDialog, setShowDupDialog] = useState(false)
 
@@ -83,12 +76,6 @@ export default function UploadPage() {
       toast.error('Tối đa 5 ảnh mỗi đề cương')
       return
     }
-
-    const foundHeic = validFiles.some(f =>
-      f.type === 'image/heic' || f.type === 'image/heif' ||
-      f.name.toLowerCase().endsWith('.heic') || f.name.toLowerCase().endsWith('.heif')
-    )
-    setHasHeic(foundHeic)
 
     setImages(prev => [...prev, ...validFiles])
     setPreviews(prev => [...prev, ...validFiles.map(f => URL.createObjectURL(f))])
@@ -132,39 +119,13 @@ export default function UploadPage() {
     setShowDupDialog(false)
 
     setLoading(true)
-
-    // Nếu có ảnh HEIC thì thêm bước convert vào đầu
-    const initialSteps = hasHeic
-      ? [HEIC_CONVERT_STEP, ...BASE_STEPS]
-      : [...BASE_STEPS]
-    setSteps(initialSteps)
+    setSteps([...BASE_STEPS])
 
     try {
-      let filesToUpload = images
-
-      // Bước 0 (nếu có HEIC): Convert sang JPEG
-      if (hasHeic) {
-        setStepStatus('convert', 'running')
-        const heic2any = (await import('heic2any')).default
-        const converted: File[] = []
-        for (const f of images) {
-          const isHeicFile = f.type === 'image/heic' || f.type === 'image/heif' ||
-            f.name.toLowerCase().endsWith('.heic') || f.name.toLowerCase().endsWith('.heif')
-          if (isHeicFile) {
-            const blob = await heic2any({ blob: f, toType: 'image/jpeg', quality: 0.85 }) as Blob
-            converted.push(new File([blob], f.name.replace(/\.(heic|heif)$/i, '.jpg'), { type: 'image/jpeg' }))
-          } else {
-            converted.push(f)
-          }
-        }
-        filesToUpload = converted
-        setStepStatus('convert', 'done')
-      }
-
-      // Bước 1: Upload ảnh
+      // Bước 1: Upload ảnh (HEIC giữ nguyên, server sẽ convert khi OCR)
       setStepStatus('upload', 'running')
       const imageUrls: string[] = []
-      for (const image of filesToUpload) {
+      for (const image of images) {
         const fileName = `${Date.now()}_${Math.random().toString(36).slice(2)}_${image.name}`
         const { error } = await supabase.storage.from('syllabuses').upload(fileName, image)
         if (error) throw error
@@ -263,8 +224,7 @@ export default function UploadPage() {
 
           {currentStep && (
             <p className="text-center text-sm text-gray-500 bg-gray-50 rounded-lg p-3">
-              {currentStep.id === 'convert' && 'Ảnh iPhone (HEIC) cần chuyển sang JPEG trước khi xử lý, vui lòng chờ 10-20 giây...'}
-              {currentStep.id === 'upload' && 'Đang tải ảnh lên máy chủ...'}
+{currentStep.id === 'upload' && 'Đang tải ảnh lên máy chủ...'}
               {currentStep.id === 'ocr' && 'AI đang đọc và nhận diện nội dung đề cương, mất khoảng 15-20 giây...'}
               {currentStep.id === 'generate' && 'AI đang trích xuất câu hỏi từ đề thi, mất khoảng 15-30 giây...'}
             </p>
