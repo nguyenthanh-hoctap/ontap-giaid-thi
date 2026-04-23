@@ -1,20 +1,36 @@
 import Anthropic from '@anthropic-ai/sdk'
 import convert from 'heic-convert'
+import sharp from 'sharp'
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
-async function toJpegBuffer(buffer: Buffer, url: string, contentType: string): Promise<{ data: Buffer, mediaType: 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp' }> {
+const MAX_BYTES = 4.5 * 1024 * 1024 // 4.5MB — dưới giới hạn 5MB của Claude
+
+async function compressToLimit(buf: Buffer): Promise<Buffer> {
+  if (buf.length <= MAX_BYTES) return buf
+  // Thử giảm quality trước
+  for (const quality of [80, 65, 50]) {
+    const out = await sharp(buf).jpeg({ quality }).toBuffer()
+    if (out.length <= MAX_BYTES) return out
+  }
+  // Nếu vẫn còn lớn thì resize xuống max 2000px
+  return sharp(buf).resize({ width: 2000, height: 2000, fit: 'inside', withoutEnlargement: true }).jpeg({ quality: 70 }).toBuffer()
+}
+
+async function toJpegBuffer(buffer: Buffer, url: string, contentType: string): Promise<{ data: Buffer, mediaType: 'image/jpeg' }> {
   const isHeic = contentType.includes('heic') || contentType.includes('heif') ||
     /\.(heic|heif)(\?|$)/i.test(url)
 
+  let jpegBuf: Buffer
   if (isHeic) {
-    const jpegBuffer = await convert({ buffer: buffer as unknown as ArrayBuffer, format: 'JPEG', quality: 0.85 })
-    return { data: Buffer.from(jpegBuffer), mediaType: 'image/jpeg' }
+    const converted = await convert({ buffer: buffer as unknown as ArrayBuffer, format: 'JPEG', quality: 0.9 })
+    jpegBuf = Buffer.from(converted)
+  } else {
+    jpegBuf = buffer
   }
 
-  const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'] as const
-  const mediaType = (validTypes.find(t => contentType.includes(t)) || 'image/jpeg') as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp'
-  return { data: buffer, mediaType }
+  const final = await compressToLimit(jpegBuf)
+  return { data: final, mediaType: 'image/jpeg' }
 }
 
 export async function extractTextFromImages(imageUrls: string[]): Promise<string> {
@@ -23,10 +39,10 @@ export async function extractTextFromImages(imageUrls: string[]): Promise<string
       const res = await fetch(url)
       const buffer = Buffer.from(await res.arrayBuffer())
       const ct = res.headers.get('content-type') || ''
-      const { data, mediaType } = await toJpegBuffer(buffer, url, ct)
+      const { data } = await toJpegBuffer(buffer, url, ct)
       return {
         type: 'image' as const,
-        source: { type: 'base64' as const, media_type: mediaType, data: data.toString('base64') },
+        source: { type: 'base64' as const, media_type: 'image/jpeg' as const, data: data.toString('base64') },
       }
     })
   )
