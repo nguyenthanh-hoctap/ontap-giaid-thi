@@ -3,6 +3,8 @@ import { supabaseAdmin as supabase } from '@/lib/supabase-server'
 import { extractTextFromImages } from '@/lib/gemini'
 import { generateExamQuestions } from '@/lib/claude'
 
+export const maxDuration = 300
+
 export async function POST(req: NextRequest) {
   const { syllabus_id } = await req.json()
 
@@ -19,12 +21,9 @@ export async function POST(req: NextRequest) {
   await supabase.from('syllabuses').update({ status: 'processing' }).eq('id', syllabus_id)
 
   try {
-    // 3. OCR bằng Claude Vision (skip nếu đã có content)
-    let extractedContent = syllabus.extracted_content
-    if (!extractedContent) {
-      extractedContent = await extractTextFromImages(syllabus.image_urls)
-      await supabase.from('syllabuses').update({ extracted_content: extractedContent }).eq('id', syllabus_id)
-    }
+    // 3. OCR bằng Claude Vision — luôn chạy lại từ ảnh thực tế
+    const extractedContent = await extractTextFromImages(syllabus.image_urls)
+    await supabase.from('syllabuses').update({ extracted_content: extractedContent }).eq('id', syllabus_id)
 
     // 4. Sinh câu hỏi bằng Claude
     const questions = await generateExamQuestions(
