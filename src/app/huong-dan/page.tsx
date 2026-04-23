@@ -21,36 +21,36 @@ const steps = [
   },
   {
     icon: Camera,
-    title: 'Chụp ảnh đề cương',
+    title: 'Chụp ảnh đề thi',
     color: 'bg-blue-100 text-blue-600',
     content: [
-      'Chụp rõ nét toàn bộ nội dung đề cương, tối đa 5 ảnh mỗi lần.',
+      'Chụp rõ nét toàn bộ đề thi, tối đa 5 ảnh (mỗi ảnh 1 trang).',
       'Hỗ trợ JPG, PNG và ảnh iPhone (HEIC — tự động chuyển đổi).',
-      'Đảm bảo chữ đọc được, không bị mờ, không bị che khuất.',
-      'Nhiều trang đề cương? Upload tất cả cùng lúc để AI đọc toàn bộ.',
+      'Đảm bảo chữ đọc được, đủ sáng, không bị mờ hay che khuất.',
+      'Đề nhiều trang? Upload tất cả cùng lúc để AI đọc toàn bộ.',
     ],
   },
   {
     icon: Upload,
-    title: 'Tạo bộ đề mới',
+    title: 'Upload và số hóa đề thi',
     color: 'bg-indigo-100 text-indigo-600',
     content: [
-      'Vào trang "Tạo đề mới", điền tên đề cương, chọn Lớp và Môn học.',
-      'Tải ảnh đề cương lên (kéo thả hoặc nhấp chọn ảnh).',
-      'Nhấn "Tạo bộ đề ngay" — AI sẽ xử lý trong khoảng 30–60 giây.',
-      'Hệ thống tự động nhận diện chữ viết và sinh 20 câu hỏi phù hợp.',
+      'Vào trang "Tạo đề mới", điền tên đề, chọn Lớp và Môn học.',
+      'Tải ảnh đề thi lên (kéo thả hoặc nhấp chọn ảnh).',
+      'Nhấn "Tạo bộ đề ngay" — AI xử lý trong khoảng 20–40 giây.',
+      'AI đọc và trích xuất ĐÚNG số câu hỏi có trong đề — không thêm, không bớt.',
     ],
   },
   {
     icon: Brain,
-    title: 'AI tạo đề theo từng môn',
+    title: 'AI trích xuất & điền đáp án',
     color: 'bg-emerald-100 text-emerald-600',
     content: [
-      'Toán: câu đại số, hình học (có hình vẽ SVG) và chứng minh.',
-      'Tiếng Anh: ngữ pháp, từ vựng, đọc hiểu — câu hỏi bằng tiếng Anh.',
-      'Ngữ Văn / Tiếng Việt: đọc hiểu tác phẩm, ngữ pháp thực hành.',
-      'Khoa Học Tự Nhiên: lý thuyết khái niệm và vận dụng thực tế.',
-      'Các môn khác: câu nhận biết, thông hiểu và vận dụng.',
+      'Toán: nhận diện câu trắc nghiệm, tự luận, chứng minh; vẽ hình SVG cho câu hình học.',
+      'Tiếng Anh: giữ nguyên câu hỏi tiếng Anh, giải thích bằng tiếng Việt.',
+      'Ngữ Văn / Tiếng Việt: trích xuất đọc hiểu và câu ngữ pháp.',
+      'Khoa Học Tự Nhiên và các môn khác: trích xuất đúng nội dung đề.',
+      'Nếu đề không ghi sẵn đáp án, AI tự điền đáp án đúng kèm giải thích.',
     ],
   },
   {
@@ -95,11 +95,12 @@ const subjects = [
 ]
 
 const tips = [
-  { icon: CheckCircle, color: 'text-green-500', text: 'Ảnh chụp rõ, đủ sáng, chữ không bị nghiêng quá 30° sẽ cho kết quả tốt nhất.' },
-  { icon: CheckCircle, color: 'text-green-500', text: 'Nếu đề cương nhiều trang, upload đủ tất cả để AI bao quát toàn bộ kiến thức.' },
-  { icon: CheckCircle, color: 'text-green-500', text: 'Tên đề cương nên ghi rõ: "Đề cương HK1 Toán lớp 7" để dễ tìm lại sau.' },
-  { icon: AlertCircle, color: 'text-amber-500', text: 'AI mất khoảng 30–60 giây để xử lý — vui lòng không tắt trang trong lúc chờ.' },
-  { icon: AlertCircle, color: 'text-amber-500', text: 'Đề tạo ra mang tính tham khảo, nên kiểm tra lại đáp án với giáo viên khi cần.' },
+  { icon: CheckCircle, color: 'text-green-500', text: 'Ảnh chụp rõ, đủ sáng, chữ không bị nghiêng quá 30° — AI đọc chính xác hơn.' },
+  { icon: CheckCircle, color: 'text-green-500', text: 'Đề nhiều trang thì upload đủ tất cả để không bị mất câu hỏi.' },
+  { icon: CheckCircle, color: 'text-green-500', text: 'Tên đề nên ghi rõ: "Đề thi HK1 KHTN lớp 8" để dễ tìm lại sau.' },
+  { icon: CheckCircle, color: 'text-green-500', text: 'Chọn đúng Môn học — AI dùng quy tắc riêng theo từng môn để trích xuất chính xác hơn.' },
+  { icon: AlertCircle, color: 'text-amber-500', text: 'AI mất khoảng 20–40 giây để xử lý — vui lòng không tắt trang trong lúc chờ.' },
+  { icon: AlertCircle, color: 'text-amber-500', text: 'Đáp án do AI điền mang tính tham khảo, nên đối chiếu lại với giáo viên khi cần.' },
 ]
 
 export default function HuongDanPage() {
@@ -113,7 +114,7 @@ export default function HuongDanPage() {
             <BookOpen className="w-7 h-7 text-white" />
           </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Hướng dẫn sử dụng</h1>
-          <p className="text-gray-500">Từ đề cương đến bộ đề luyện tập chỉ trong vài bước</p>
+          <p className="text-gray-500">Chụp ảnh đề thi — AI số hóa và điền đáp án tự động</p>
         </div>
 
         {/* Steps */}
