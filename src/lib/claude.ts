@@ -36,13 +36,18 @@ function parseGeminiResponse(text: string): Omit<Question, 'id' | 'exam_set_id'>
   }
 }
 
+const SUBCHOICE_RULE = `- Câu có nhiều phần con (a, b, c, d, ...): tách thành NHIỀU phần tử JSON, mỗi phần con = 1 câu trắc nghiệm riêng
+  + Phần con ĐẦU TIÊN: question_text = "[STEM]\n{toàn bộ đề bài gốc}\n[/STEM]\n\n{câu hỏi phần a}"
+  + Các phần con TIẾP THEO: question_text chỉ ghi nội dung câu hỏi phần đó thôi (không lặp lại đề gốc)
+  + Mỗi phần con là 1 câu trắc nghiệm 4 đáp án độc lập`
+
 const EXTRACT_RULES = (subject: string) => {
   const diagramRule = `- Câu CÓ HÌNH VẼ trong ảnh: diagram={"bbox":[ymin,xmin,ymax,xmax],"image_index":số_thứ_tự_ảnh_0_based} tọa độ 0-1000`
   const mcRule = `- ƯU TIÊN chuyển câu tự luận/tính toán thành trắc nghiệm 4 đáp án (tạo 3 đáp án sai hợp lý): type="multiple_choice"
-- Chỉ dùng short_answer nếu câu YÊU CẦU TRÌNH BÀY lời giải (chứng minh, giải phương trình nhiều bước)
-- MỖI câu trong đề = 1 phần tử JSON, KHÔNG tách câu có nhiều phần (a, b, c) thành nhiều phần tử`
+- Chỉ dùng short_answer nếu câu YÊU CẦU TRÌNH BÀY lời giải (chứng minh, giải phương trình nhiều bước)`
   if (subject === 'Toán') {
     return `${mcRule}
+${SUBCHOICE_RULE}
 - Câu trắc nghiệm sẵn 4 đáp án: type="multiple_choice"
 - Câu đúng/sai: type="true_false", options=[{"key":"A","text":"Đúng"},{"key":"B","text":"Sai"}]
 - Câu chứng minh hình học bắt buộc trình bày: type="proof", options=null
@@ -55,13 +60,14 @@ ${diagramRule}`
 - Câu đúng/sai (True/False): type="true_false", options=[{"key":"A","text":"True"},{"key":"B","text":"False"}]
 - Câu điền từ/tự luận ngắn: type="short_answer", options=null
 - Giữ nguyên tiếng Anh cho question_text và options, explanation viết tiếng Việt
-- MỖI câu trong đề = 1 phần tử JSON
+${SUBCHOICE_RULE}
 - QUAN TRỌNG — Đoạn văn / đoạn hội thoại đọc hiểu (reading passage, dialogue):
   Đưa TOÀN BỘ đoạn văn vào đầu question_text của câu hỏi ĐẦU TIÊN trong nhóm, định dạng:
   "[PASSAGE]\n{toàn bộ đoạn văn}\n[/PASSAGE]\n\n{câu hỏi}"
   Các câu tiếp theo trong cùng nhóm KHÔNG lặp lại [PASSAGE], chỉ ghi nội dung câu hỏi bình thường`
   }
   return `${mcRule}
+${SUBCHOICE_RULE}
 - Câu trắc nghiệm sẵn 4 đáp án: type="multiple_choice"
 - Câu đúng/sai: type="true_false", options=[{"key":"A","text":"Đúng"},{"key":"B","text":"Sai"}]`
 }

@@ -50,7 +50,26 @@ function SpeakButton({ text, lang = 'en-US' }: { text: string; lang?: string }) 
 
 function QuestionText({ text, subject, seenPassages }: { text: string; subject?: string; seenPassages: Set<string> }) {
   const passageMatch = text.match(/^\[PASSAGE\]([\s\S]*?)\[\/PASSAGE\]\s*\n*([\s\S]*)$/)
+  const stemMatch = text.match(/^\[STEM\]([\s\S]*?)\[\/STEM\]\s*\n*([\s\S]*)$/)
   const isEnglish = subject === 'Tiếng Anh'
+
+  if (stemMatch) {
+    const stem = stemMatch[1].trim()
+    const question = stemMatch[2].trim()
+    const alreadySeen = seenPassages.has(stem)
+    if (!alreadySeen) seenPassages.add(stem)
+    return (
+      <div className="space-y-3 flex-1">
+        {!alreadySeen && (
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
+            <span className="text-xs font-semibold text-amber-600 uppercase tracking-wide block mb-2">Đề bài</span>
+            {stem}
+          </div>
+        )}
+        <span className="text-base font-medium">{question}</span>
+      </div>
+    )
+  }
 
   if (passageMatch) {
     const passage = passageMatch[1].trim()
@@ -247,10 +266,11 @@ export default function ExamPage() {
         {/* Questions */}
         <div className="space-y-6">
           {questions.map((q, index) => {
-            const seenPassages = new Set<string>(questions.slice(0, index).map(prev => {
-              const m = prev.question_text.match(/^\[PASSAGE\]([\s\S]*?)\[\/PASSAGE\]/)
-              return m ? m[1].trim() : ''
-            }).filter(Boolean))
+            const seenPassages = new Set<string>(questions.slice(0, index).flatMap(prev => {
+              const mp = prev.question_text.match(/^\[PASSAGE\]([\s\S]*?)\[\/PASSAGE\]/)
+              const ms = prev.question_text.match(/^\[STEM\]([\s\S]*?)\[\/STEM\]/)
+              return [mp?.[1]?.trim(), ms?.[1]?.trim()].filter(Boolean) as string[]
+            }))
             const userAnswer = answers[q.id]
             const res = result?.results[q.id]
             const isOpenType = q.type === 'short_answer' || q.type === 'proof'
