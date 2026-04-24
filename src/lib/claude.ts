@@ -37,12 +37,16 @@ function parseGeminiResponse(text: string): Omit<Question, 'id' | 'exam_set_id'>
 }
 
 const EXTRACT_RULES = (subject: string) => {
+  const diagramRule = `- Câu CÓ HÌNH VẼ trong ảnh: diagram={"bbox":[ymin,xmin,ymax,xmax],"image_index":số_thứ_tự_ảnh_0_based} tọa độ 0-1000`
+  const mcRule = `- ƯU TIÊN chuyển câu tự luận/tính toán thành trắc nghiệm 4 đáp án (tạo 3 đáp án sai hợp lý): type="multiple_choice"
+- Chỉ dùng short_answer nếu câu YÊU CẦU TRÌNH BÀY lời giải (chứng minh, giải phương trình nhiều bước)
+- MỖI câu trong đề = 1 phần tử JSON, KHÔNG tách câu có nhiều phần (a, b, c) thành nhiều phần tử`
   if (subject === 'Toán') {
-    return `- Câu trắc nghiệm 4 đáp án: type="multiple_choice"
+    return `${mcRule}
+- Câu trắc nghiệm sẵn 4 đáp án: type="multiple_choice"
 - Câu đúng/sai: type="true_false", options=[{"key":"A","text":"Đúng"},{"key":"B","text":"Sai"}]
-- Câu tự luận/tính toán ngắn: type="short_answer", options=null
-- Câu chứng minh hình học: type="proof", options=null
-- Câu CÓ HÌNH VẼ trong ảnh: diagram={"bbox":[ymin,xmin,ymax,xmax],"image_index":số_thứ_tự_ảnh_0_based} tọa độ 0-1000`
+- Câu chứng minh hình học bắt buộc trình bày: type="proof", options=null
+${diagramRule}`
   }
   if (subject === 'Tiếng Anh') {
     return `- BỎ QUA hoàn toàn phần LISTENING / NGHE (Section Listening, Part Listening, câu nghe audio...) vì không có file âm thanh
@@ -51,14 +55,15 @@ const EXTRACT_RULES = (subject: string) => {
 - Câu đúng/sai (True/False): type="true_false", options=[{"key":"A","text":"True"},{"key":"B","text":"False"}]
 - Câu điền từ/tự luận ngắn: type="short_answer", options=null
 - Giữ nguyên tiếng Anh cho question_text và options, explanation viết tiếng Việt
+- MỖI câu trong đề = 1 phần tử JSON
 - QUAN TRỌNG — Đoạn văn / đoạn hội thoại đọc hiểu (reading passage, dialogue):
   Đưa TOÀN BỘ đoạn văn vào đầu question_text của câu hỏi ĐẦU TIÊN trong nhóm, định dạng:
   "[PASSAGE]\n{toàn bộ đoạn văn}\n[/PASSAGE]\n\n{câu hỏi}"
   Các câu tiếp theo trong cùng nhóm KHÔNG lặp lại [PASSAGE], chỉ ghi nội dung câu hỏi bình thường`
   }
-  return `- Câu trắc nghiệm 4 đáp án: type="multiple_choice"
-- Câu đúng/sai: type="true_false", options=[{"key":"A","text":"Đúng"},{"key":"B","text":"Sai"}]
-- Câu tự luận/ngắn: type="short_answer", options=null`
+  return `${mcRule}
+- Câu trắc nghiệm sẵn 4 đáp án: type="multiple_choice"
+- Câu đúng/sai: type="true_false", options=[{"key":"A","text":"Đúng"},{"key":"B","text":"Sai"}]`
 }
 
 function buildPrompt(subject: string, grade: number, content?: string) {
