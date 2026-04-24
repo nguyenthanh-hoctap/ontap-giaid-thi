@@ -88,17 +88,13 @@ export async function extractExamQuestionsFromImages(
 ): Promise<Omit<Question, 'id' | 'exam_set_id'>[]> {
   const model = genAI.getGenerativeModel({
     model: 'gemini-2.5-flash-lite',
-    generationConfig: { maxOutputTokens: 16000 } as never,
     safetySettings: SAFETY_SETTINGS,
   })
   const imageParts = await prepareImageParts(imageUrls)
-  const result = await model.generateContent([
-    ...imageParts,
-    { text: buildPrompt(subject, grade) + `\n\nLƯU Ý QUAN TRỌNG:
-- Xử lý TẤT CẢ ${imageUrls.length} ảnh, không bỏ sót câu nào
-- Mỗi câu PHẢI có đầy đủ correct_answer và explanation
-- Nếu câu có hình vẽ hình học trong ảnh: diagram={"bbox":[ymin,xmin,ymax,xmax],"image_index":0} tọa độ 0-1000, KHÔNG sinh SVG` },
-  ])
+  const result = await model.generateContent({
+    contents: [{ role: 'user', parts: [...imageParts, { text: buildPrompt(subject, grade) + `\n\nBẮT BUỘC: Đếm và liệt kê TẤT CẢ câu hỏi có trong ${imageUrls.length} ảnh — KHÔNG được bỏ sót bất kỳ câu nào. Mỗi câu PHẢI có correct_answer và explanation. Nếu câu có hình vẽ: diagram={"bbox":[ymin,xmin,ymax,xmax],"image_index":số_ảnh} tọa độ 0-1000, KHÔNG sinh SVG.` }] }],
+    generationConfig: { maxOutputTokens: 16000 },
+  })
   const raw = parseGeminiResponse(result.response.text())
   return raw
     .filter(q => q.question_text && q.correct_answer)
