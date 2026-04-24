@@ -93,7 +93,7 @@ export async function extractExamQuestionsFromImages(
   grade: number,
 ): Promise<Omit<Question, 'id' | 'exam_set_id'>[]> {
   const model = genAI.getGenerativeModel({
-    model: 'gemini-2.0-flash',
+    model: 'gemini-1.5-flash',
     safetySettings: SAFETY_SETTINGS,
   })
   const imageParts = await prepareImageParts(imageUrls)
@@ -112,7 +112,7 @@ export async function extractExamQuestions(
   subject: string,
   grade: number,
 ): Promise<Omit<Question, 'id' | 'exam_set_id'>[]> {
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash', safetySettings: SAFETY_SETTINGS })
+  const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash', safetySettings: SAFETY_SETTINGS })
   const result = await model.generateContent(buildPrompt(subject, grade, content))
   const raw = parseGeminiResponse(result.response.text())
   return raw
