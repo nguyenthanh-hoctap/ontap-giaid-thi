@@ -4,11 +4,13 @@ import { Question } from '@/types'
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
+const SVG_RULES = `viewBox="0 0 360 300" width="360" height="300". Vùng an toàn x:30-330, y:20-280. stroke="#1e293b" stroke-width="2" fill="none". Nhãn: font-size="15" font-family="serif" font-style="italic". TÍNH TỌA ĐỘ CHÍNH XÁC trước khi vẽ. Vuông tại X: hai cạnh từ X vuông góc thật sự (tích vô hướng=0). Dấu góc vuông: polyline 3 điểm 10px.`
+
 const JSON_FORMAT = `CHỈ trả về JSON array thuần túy, KHÔNG markdown, bắt đầu bằng [ kết thúc bằng ].
 Mỗi phần tử: {"order_number":1,"type":"multiple_choice","question_text":"...","options":[{"key":"A","text":"..."},{"key":"B","text":"..."},{"key":"C","text":"..."},{"key":"D","text":"..."}],"correct_answer":"A","explanation":"giải thích chi tiết","difficulty":"easy","diagram":null}
 - short_answer/proof: options là null, correct_answer là đáp án/các bước chứng minh đầy đủ
 - true_false: options=[{"key":"A","text":"Đúng"},{"key":"B","text":"Sai"}]
-- diagram: luôn để null`
+- diagram: SVG string cho câu hình học (theo quy tắc: ${SVG_RULES}), null nếu không liên quan hình học`
 
 async function callClaude(prompt: string): Promise<Omit<Question, 'id' | 'exam_set_id'>[]> {
   const message = await client.messages.create({
@@ -39,7 +41,8 @@ const EXTRACT_RULES = (subject: string) => {
     return `- Câu trắc nghiệm 4 đáp án: type="multiple_choice"
 - Câu đúng/sai: type="true_false", options=[{"key":"A","text":"Đúng"},{"key":"B","text":"Sai"}]
 - Câu tự luận/tính toán ngắn: type="short_answer", options=null
-- Câu chứng minh hình học: type="proof", options=null`
+- Câu chứng minh hình học: type="proof", options=null
+- Câu có hình vẽ hoặc liên quan hình học: vẽ diagram SVG theo quy tắc trong JSON_FORMAT`
   }
   if (subject === 'Tiếng Anh') {
     return `- BỎ QUA hoàn toàn phần LISTENING / NGHE (Section Listening, Part Listening, câu nghe audio...) vì không có file âm thanh
