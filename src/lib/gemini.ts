@@ -81,8 +81,29 @@ function fixFullHeightHatch(fig: FigureJSON): FigureJSON {
   return { ...fig, shapes }
 }
 
+function fixSymmetricBorder(fig: FigureJSON): FigureJSON {
+  // If shapes[0] is outer (0,0,100,100) and shapes[1] is an inner rect roughly centered,
+  // enforce equal margins on all 4 sides (average the 4 margins)
+  if (fig.shapes.length < 2) return fig
+  const outer = fig.shapes[0]
+  const inner = fig.shapes[1]
+  if (outer.x1_pct !== 0 || outer.y1_pct !== 0 || outer.x2_pct !== 100 || outer.y2_pct !== 100) return fig
+  if (inner.fill !== 'gray' && inner.fill !== 'none') return fig
+  const mL = inner.x1_pct, mR = 100 - inner.x2_pct
+  const mT = inner.y1_pct, mB = 100 - inner.y2_pct
+  // Only symmetrize if all 4 margins are within 10% of each other (i.e. intended to be equal)
+  const avg = (mL + mR + mT + mB) / 4
+  if (Math.max(mL, mR, mT, mB) - Math.min(mL, mR, mT, mB) < 10) {
+    const shapes = [...fig.shapes]
+    shapes[1] = { ...inner, x1_pct: avg, y1_pct: avg, x2_pct: 100 - avg, y2_pct: 100 - avg }
+    return { ...fig, shapes }
+  }
+  return fig
+}
+
 function figureJsonToSvg(fig: FigureJSON): string {
   fig = fixFullHeightHatch(fig)
+  fig = fixSymmetricBorder(fig)
   const DW = 300, DH = 240, OX = 30, OY = 30
   const px = (p: number) => OX + (p / 100) * DW
   const py = (p: number) => OY + (p / 100) * DH
