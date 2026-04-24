@@ -13,6 +13,40 @@ import { CheckCircle, XCircle, Loader2, BookOpen, Clock, Lightbulb, ChevronDown,
 import { toast } from 'sonner'
 import Link from 'next/link'
 
+function mathToVietnamese(text: string): string {
+  return text
+    .replace(/(\d+)\s*m²/g, '$1 mét vuông')
+    .replace(/(\d+)\s*cm²/g, '$1 xăng ti mét vuông')
+    .replace(/(\d+)\s*km²/g, '$1 ki lô mét vuông')
+    .replace(/(\d+)\s*dm²/g, '$1 đề xi mét vuông')
+    .replace(/(\d+)\s*m³/g, '$1 mét khối')
+    .replace(/(\d+)\s*cm³/g, '$1 xăng ti mét khối')
+    .replace(/(\d+)\s*km/g, '$1 ki lô mét')
+    .replace(/(\d+)\s*cm/g, '$1 xăng ti mét')
+    .replace(/(\d+)\s*dm/g, '$1 đề xi mét')
+    .replace(/(\d+)\s*mm/g, '$1 mi li mét')
+    .replace(/(\d+)\s*°/g, '$1 độ')
+    .replace(/%/g, ' phần trăm')
+    .replace(/√(\d+)/g, 'căn bậc hai của $1')
+    .replace(/\^2/g, ' bình phương')
+    .replace(/\^3/g, ' lập phương')
+    .replace(/\^(\d+)/g, ' mũ $1')
+    .replace(/²/g, ' bình phương')
+    .replace(/³/g, ' lập phương')
+    .replace(/×/g, ' nhân ')
+    .replace(/÷/g, ' chia ')
+    .replace(/≈/g, ' xấp xỉ ')
+    .replace(/≥/g, ' lớn hơn hoặc bằng ')
+    .replace(/≤/g, ' nhỏ hơn hoặc bằng ')
+    .replace(/≠/g, ' khác ')
+    .replace(/\*/g, ' nhân ')
+    .replace(/\//g, ' phần ')
+    .replace(/=/g, ' bằng ')
+    .replace(/\+/g, ' cộng ')
+    .replace(/\s{2,}/g, ' ')
+    .trim()
+}
+
 function SpeakButton({ text, lang = 'en-US' }: { text: string; lang?: string }) {
   const [speaking, setSpeaking] = useState(false)
 
@@ -44,6 +78,41 @@ function SpeakButton({ text, lang = 'en-US' }: { text: string; lang?: string }) 
     >
       {speaking ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
       {speaking ? 'Dừng' : 'Nghe'}
+    </button>
+  )
+}
+
+function SpeakSolutionButton({ text }: { text: string }) {
+  const [speaking, setSpeaking] = useState(false)
+
+  function toggle() {
+    if (!window.speechSynthesis) return
+    if (speaking) {
+      window.speechSynthesis.cancel()
+      setSpeaking(false)
+      return
+    }
+    const utter = new SpeechSynthesisUtterance(mathToVietnamese(text))
+    utter.lang = 'vi-VN'
+    utter.rate = 0.9
+    utter.onend = () => setSpeaking(false)
+    utter.onerror = () => setSpeaking(false)
+    window.speechSynthesis.speak(utter)
+    setSpeaking(true)
+  }
+
+  return (
+    <button
+      onClick={toggle}
+      title={speaking ? 'Dừng đọc' : 'Đọc lời giải'}
+      className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors ${
+        speaking
+          ? 'bg-emerald-600 text-white hover:bg-emerald-700'
+          : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
+      }`}
+    >
+      {speaking ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
+      {speaking ? 'Dừng' : 'Nghe lời giải'}
     </button>
   )
 }
@@ -394,7 +463,12 @@ export default function ExamPage() {
 
                       {solutions[`show_${q.id}`] === 'true' && (
                         <div className="p-4 bg-emerald-50 rounded-lg border border-emerald-200">
-                          <p className="text-sm font-medium text-emerald-800 mb-2">Bài giải chi tiết:</p>
+                          <div className="flex items-center justify-between mb-2">
+                            <p className="text-sm font-medium text-emerald-800">Bài giải chi tiết:</p>
+                            {!loadingSolutions[q.id] && solutions[q.id] && (
+                              <SpeakSolutionButton text={solutions[q.id]} />
+                            )}
+                          </div>
                           {loadingSolutions[q.id]
                             ? <div className="flex items-center gap-2 text-sm text-emerald-600"><Loader2 className="w-4 h-4 animate-spin" />Đang sinh bài giải...</div>
                             : <p className="text-sm text-emerald-700 whitespace-pre-line">{solutions[q.id]}</p>
