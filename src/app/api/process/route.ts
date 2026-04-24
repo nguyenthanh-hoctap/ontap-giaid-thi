@@ -26,11 +26,17 @@ export async function POST(req: NextRequest) {
     await supabase.from('syllabuses').update({ extracted_content: extractedContent }).eq('id', syllabus_id)
 
     // 4. Trích xuất câu hỏi từ đề thi
+    console.log('[process] OCR content length:', extractedContent.length)
     const questions = await extractExamQuestions(
       extractedContent,
       syllabus.subject,
       syllabus.grade,
     )
+    console.log('[process] Extracted questions:', questions.length)
+
+    if (questions.length === 0) {
+      throw new Error('AI không trích xuất được câu hỏi nào từ ảnh. Vui lòng kiểm tra lại ảnh chụp (chữ rõ, đủ sáng) và thử lại.')
+    }
 
     // 5. Tạo exam set
     const { data: examSet, error: eErr } = await supabase
@@ -51,8 +57,11 @@ export async function POST(req: NextRequest) {
     const questionsWithExamId = questions
       .filter((q) => q.question_text && q.correct_answer)
       .map((q, i) => ({ ...q, order_number: i + 1, exam_set_id: examSet.id }))
-    const { error: qErr } = await supabase.from('questions').insert(questionsWithExamId)
-    if (qErr) throw new Error('Lỗi lưu câu hỏi: ' + qErr.message)
+
+    if (questionsWithExamId.length > 0) {
+      const { error: qErr } = await supabase.from('questions').insert(questionsWithExamId)
+      if (qErr) throw new Error('Lỗi lưu câu hỏi: ' + qErr.message)
+    }
 
     // 7. Cập nhật status -> done
     await supabase.from('syllabuses').update({ status: 'done' }).eq('id', syllabus_id)

@@ -92,11 +92,20 @@ async function callClaude(prompt: string): Promise<Omit<Question, 'id' | 'exam_s
     messages: [{ role: 'user', content: prompt }],
   })
   const text = message.content[0].type === 'text' ? message.content[0].text : ''
+  console.log('[callClaude] stop_reason:', message.stop_reason, '| response length:', text.length)
   const start = text.indexOf('[')
   const end = text.lastIndexOf(']')
-  if (start === -1 || end === -1) return []
-  const repaired = jsonrepair(text.slice(start, end + 1))
-  return JSON.parse(repaired)
+  if (start === -1 || end === -1) {
+    console.log('[callClaude] No JSON array found. Response preview:', text.slice(0, 300))
+    return []
+  }
+  try {
+    const repaired = jsonrepair(text.slice(start, end + 1))
+    return JSON.parse(repaired)
+  } catch (e) {
+    console.log('[callClaude] JSON parse failed:', e)
+    return []
+  }
 }
 
 const EXTRACT_RULES = (subject: string) => {
