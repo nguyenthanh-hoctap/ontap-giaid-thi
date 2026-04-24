@@ -42,7 +42,7 @@ const EXTRACT_RULES = (subject: string) => {
 - Câu đúng/sai: type="true_false", options=[{"key":"A","text":"Đúng"},{"key":"B","text":"Sai"}]
 - Câu tự luận/tính toán ngắn: type="short_answer", options=null
 - Câu chứng minh hình học: type="proof", options=null
-- Câu CÓ HÌNH VẼ trong ảnh: diagram phải vẽ lại ĐÚNG hình đó bằng SVG`
+- Câu CÓ HÌNH VẼ trong ảnh: diagram={"bbox":[ymin,xmin,ymax,xmax],"image_index":số_thứ_tự_ảnh_0_based} tọa độ 0-1000`
   }
   if (subject === 'Tiếng Anh') {
     return `- BỎ QUA hoàn toàn phần LISTENING / NGHE (Section Listening, Part Listening, câu nghe audio...) vì không có file âm thanh
@@ -92,7 +92,7 @@ export async function extractExamQuestionsFromImages(
     { text: buildPrompt(subject, grade) + `\n\nLƯU Ý QUAN TRỌNG:
 - Xử lý TẤT CẢ ${imageUrls.length} ảnh, không bỏ sót câu nào
 - Mỗi câu PHẢI có đầy đủ correct_answer và explanation
-- Nếu câu có hình vẽ hình học trong ảnh: PHẢI sinh diagram SVG vẽ lại đúng hình đó` },
+- Nếu câu có hình vẽ hình học trong ảnh: diagram={"bbox":[ymin,xmin,ymax,xmax],"image_index":0} tọa độ 0-1000, KHÔNG sinh SVG` },
   ])
   const raw = parseGeminiResponse(result.response.text())
   return raw
