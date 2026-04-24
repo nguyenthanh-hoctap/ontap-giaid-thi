@@ -74,8 +74,8 @@ ${content ? `\nNỘI DUNG ĐỀ THI:\n${content}\n` : ''}
 QUY TẮC TRÍCH XUẤT:
 ${EXTRACT_RULES(subject)}
 - difficulty: dựa vào mức độ câu hỏi — "easy" (nhận biết), "medium" (thông hiểu), "hard" (vận dụng)
-- correct_answer: điền đáp án đúng dựa trên kiến thức ${subject} lớp ${grade}; nếu đề có ghi đáp án thì dùng đáp án đó; với câu short_answer/proof thì viết LỜI GIẢI CHI TIẾT từng bước
-- explanation: giải thích CHI TIẾT từng bước tại sao đó là đáp án đúng, kèm công thức và tính toán cụ thể
+- correct_answer: KHÔNG được để trống — điền đáp án đúng theo kiến thức ${subject} lớp ${grade}; đề có ghi thì dùng đáp án đó; short_answer/proof thì viết lời giải từng bước
+- explanation: KHÔNG được để trống — giải thích tại sao đáp án đúng, kèm công thức/tính toán; BẮT BUỘC cho MỌI câu kể cả câu cuối
 - Giữ nguyên số thứ tự câu như trong đề cho order_number
 
 ${JSON_FORMAT}`

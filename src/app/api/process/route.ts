@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin as supabase } from '@/lib/supabase-server'
-import { generateSvgFromCrop } from '@/lib/gemini'
 import { extractExamQuestionsFromImages } from '@/lib/claude'
+
+const ENABLE_DIAGRAM = process.env.ENABLE_DIAGRAM === 'true'
 
 export const maxDuration = 300
 
@@ -55,18 +56,20 @@ export async function POST(req: NextRequest) {
 
     if (eErr || !examSet) throw new Error('Không thể tạo bộ đề')
 
-    // 6. Crop hình vẽ từ ảnh gốc và upload
+    // 6. Xử lý diagram (chỉ khi ENABLE_DIAGRAM=true, dùng cho Firebase)
     const questionsProcessed = await Promise.all(
       questions.filter(q => q.question_text && q.correct_answer).map(async (q, i) => {
-        let diagram = q.diagram
-        const parsedDiagram = typeof diagram === 'string'
-          ? (() => { try { return JSON.parse(diagram) } catch { return null } })()
-          : (typeof diagram === 'object' ? diagram : null)
-
-        if (parsedDiagram?.bbox) {
-          const imageUrl = syllabus.image_urls[parsedDiagram.image_index ?? 0] ?? syllabus.image_urls[0]
-          const svg = await generateSvgFromCrop(imageUrl, parsedDiagram.bbox)
-          diagram = svg ?? null
+        let diagram: unknown = null
+        if (ENABLE_DIAGRAM) {
+          const { generateSvgFromCrop } = await import('@/lib/gemini')
+          const raw = q.diagram
+          const parsed = typeof raw === 'string'
+            ? (() => { try { return JSON.parse(raw) } catch { return null } })()
+            : (typeof raw === 'object' ? raw : null)
+          if (parsed?.bbox) {
+            const imageUrl = syllabus.image_urls[parsed.image_index ?? 0] ?? syllabus.image_urls[0]
+            diagram = await generateSvgFromCrop(imageUrl, parsed.bbox) ?? null
+          }
         }
         return { ...q, diagram, order_number: i + 1, exam_set_id: examSet.id }
       })
