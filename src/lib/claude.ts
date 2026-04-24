@@ -96,7 +96,7 @@ async function callClaude(prompt: string): Promise<Omit<Question, 'id' | 'exam_s
   const start = text.indexOf('[')
   const end = text.lastIndexOf(']')
   if (start === -1 || end === -1) {
-    console.log('[callClaude] No JSON array found. Response preview:', text.slice(0, 300))
+    console.log('[callClaude] No JSON array found. Full response:', text.slice(0, 1000))
     return []
   }
   try {
@@ -104,6 +104,7 @@ async function callClaude(prompt: string): Promise<Omit<Question, 'id' | 'exam_s
     return JSON.parse(repaired)
   } catch (e) {
     console.log('[callClaude] JSON parse failed:', e)
+    console.log('[callClaude] Raw JSON slice (first 500):', text.slice(start, start + 500))
     return []
   }
 }

@@ -35,6 +35,7 @@ export async function POST(req: NextRequest) {
     console.log('[process] Extracted questions:', questions.length)
 
     if (questions.length === 0) {
+      console.log('[process] OCR content preview:', extractedContent.slice(0, 500))
       throw new Error('AI không trích xuất được câu hỏi nào từ ảnh. Vui lòng kiểm tra lại ảnh chụp (chữ rõ, đủ sáng) và thử lại.')
     }
 
