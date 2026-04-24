@@ -22,16 +22,29 @@ export async function POST(req: NextRequest) {
 
   try {
     // 3. OCR để lưu nội dung text
-    const extractedContent = await extractTextFromImages(syllabus.image_urls)
+    console.log('[process] Step 3: OCR extractTextFromImages')
+    let extractedContent: string
+    try {
+      extractedContent = await extractTextFromImages(syllabus.image_urls)
+    } catch (e) {
+      console.error('[process] Step 3 FAILED:', String(e))
+      throw new Error('OCR thất bại: ' + String(e))
+    }
     await supabase.from('syllabuses').update({ extracted_content: extractedContent }).eq('id', syllabus_id)
 
     // 4. Trích xuất câu hỏi trực tiếp từ ảnh (Gemini Vision thấy hình vẽ, sinh SVG chính xác)
-    console.log('[process] Extracting questions from images directly...')
-    const questions = await extractExamQuestionsFromImages(
-      syllabus.image_urls,
-      syllabus.subject,
-      syllabus.grade,
-    )
+    console.log('[process] Step 4: extractExamQuestionsFromImages')
+    let questions: Awaited<ReturnType<typeof extractExamQuestionsFromImages>>
+    try {
+      questions = await extractExamQuestionsFromImages(
+        syllabus.image_urls,
+        syllabus.subject,
+        syllabus.grade,
+      )
+    } catch (e) {
+      console.error('[process] Step 4 FAILED:', String(e))
+      throw new Error('Trích xuất câu hỏi thất bại: ' + String(e))
+    }
     console.log('[process] Extracted questions:', questions.length)
 
     if (questions.length === 0) {
