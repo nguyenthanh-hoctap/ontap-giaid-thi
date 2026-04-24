@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Textarea } from '@/components/ui/textarea'
 import { ExamSet, Question } from '@/types'
-import { CheckCircle, XCircle, Loader2, BookOpen, Clock, Lightbulb, ChevronDown, ChevronUp, Globe, Lock, Volume2, VolumeX } from 'lucide-react'
+import { CheckCircle, XCircle, Loader2, BookOpen, Clock, Lightbulb, ChevronDown, ChevronUp, Globe, Lock, Volume2, VolumeX, GraduationCap } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
 
@@ -108,6 +108,8 @@ export default function ExamPage() {
   const [submitting, setSubmitting] = useState(false)
   const [togglingPublic, setTogglingPublic] = useState(false)
   const [openExplanations, setOpenExplanations] = useState<Record<string, boolean>>({})
+  const [solutions, setSolutions] = useState<Record<string, string>>({})
+  const [loadingSolutions, setLoadingSolutions] = useState<Record<string, boolean>>({})
 
   useEffect(() => {
     const headers: Record<string, string> = {}
@@ -121,6 +123,24 @@ export default function ExamPage() {
 
   function toggleExplanation(qId: string) {
     setOpenExplanations(prev => ({ ...prev, [qId]: !prev[qId] }))
+  }
+
+  async function fetchSolution(q: Question) {
+    if (solutions[q.id] || loadingSolutions[q.id]) return
+    setLoadingSolutions(prev => ({ ...prev, [q.id]: true }))
+    try {
+      const res = await fetch('/api/solve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question_text: q.question_text, subject: examSet?.subject, grade: examSet?.grade, type: q.type }),
+      })
+      const data = await res.json()
+      setSolutions(prev => ({ ...prev, [q.id]: data.solution }))
+    } catch {
+      setSolutions(prev => ({ ...prev, [q.id]: 'Không thể tải bài giải. Vui lòng thử lại.' }))
+    } finally {
+      setLoadingSolutions(prev => ({ ...prev, [q.id]: false }))
+    }
   }
 
   async function handleTogglePublic() {
@@ -256,11 +276,25 @@ export default function ExamPage() {
                 </CardHeader>
 
                 <CardContent className="space-y-4">
-                  {q.diagram && (
-                    <div className="bg-white border border-gray-200 rounded-lg p-3 flex justify-center">
-                      <div dangerouslySetInnerHTML={{ __html: q.diagram }} />
-                    </div>
-                  )}
+                  {q.diagram && typeof q.diagram === 'string' && (() => {
+                    const d = q.diagram as string
+                    if (d.startsWith('http')) {
+                      return (
+                        <div className="bg-white border border-gray-200 rounded-lg p-3 flex justify-center">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={d} alt="Hình vẽ" className="max-w-full rounded" />
+                        </div>
+                      )
+                    }
+                    if (d.trim().startsWith('<svg')) {
+                      return (
+                        <div className="bg-white border border-gray-200 rounded-lg p-3 flex justify-center">
+                          <div dangerouslySetInnerHTML={{ __html: d }} />
+                        </div>
+                      )
+                    }
+                    return null
+                  })()}
 
                   {q.options && (
                     <div className="space-y-2">
@@ -306,18 +340,18 @@ export default function ExamPage() {
                   )}
 
                   {q.explanation && (
-                    <div>
+                    <div className="space-y-2">
                       <button
                         onClick={() => toggleExplanation(q.id)}
                         className="flex items-center gap-1.5 text-sm text-indigo-600 hover:text-indigo-800 font-medium"
                       >
                         <Lightbulb className="w-4 h-4" />
-                        {showExpl ? 'Ẩn lời giải' : 'Xem lời giải & hướng dẫn'}
+                        {showExpl ? 'Ẩn hướng dẫn' : 'Xem hướng dẫn'}
                         {showExpl ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                       </button>
 
                       {showExpl && (
-                        <div className="mt-2 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                        <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
                           {result && !isOpenType && (
                             <p className="text-sm font-semibold text-blue-800 mb-1">
                               Đáp án đúng: <span className="text-green-700">{res?.correct_answer}</span>
@@ -325,6 +359,26 @@ export default function ExamPage() {
                           )}
                           <p className="text-sm font-medium text-blue-800 mb-1">Hướng dẫn giải:</p>
                           <p className="text-sm text-blue-700 whitespace-pre-line">{q.explanation}</p>
+                        </div>
+                      )}
+
+                      <button
+                        onClick={() => { fetchSolution(q); setSolutions(prev => ({ ...prev, [`show_${q.id}`]: prev[`show_${q.id}`] === 'true' ? '' : 'true' })) }}
+                        className="flex items-center gap-1.5 text-sm text-emerald-600 hover:text-emerald-800 font-medium"
+                      >
+                        <GraduationCap className="w-4 h-4" />
+                        {solutions[`show_${q.id}`] === 'true' ? 'Ẩn bài giải' : 'Xem bài giải chi tiết'}
+                        {loadingSolutions[q.id] && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                        {!loadingSolutions[q.id] && (solutions[`show_${q.id}`] === 'true' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />)}
+                      </button>
+
+                      {solutions[`show_${q.id}`] === 'true' && (
+                        <div className="p-4 bg-emerald-50 rounded-lg border border-emerald-200">
+                          <p className="text-sm font-medium text-emerald-800 mb-2">Bài giải chi tiết:</p>
+                          {loadingSolutions[q.id]
+                            ? <div className="flex items-center gap-2 text-sm text-emerald-600"><Loader2 className="w-4 h-4 animate-spin" />Đang sinh bài giải...</div>
+                            : <p className="text-sm text-emerald-700 whitespace-pre-line">{solutions[q.id]}</p>
+                          }
                         </div>
                       )}
                     </div>
