@@ -155,7 +155,7 @@ export async function generateSvgFromCrop(
     const height = Math.min(H - top, Math.round((ymax - ymin) / 1000 * H) + 30)
     const cropped = await sharp(jpegBuf).extract({ left, top, width, height }).jpeg({ quality: 90 }).toBuffer()
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash', safetySettings: SAFETY_SETTINGS })
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-lite', safetySettings: SAFETY_SETTINGS })
     const result = await model.generateContent([
       { inlineData: { data: cropped.toString('base64'), mimeType: 'image/jpeg' } },
       { text: `Phân tích hình vẽ hình học này và trả về JSON mô tả cấu trúc.
@@ -233,7 +233,7 @@ export async function cropAndUploadDiagram(
 }
 
 export async function extractTextFromImages(imageUrls: string[]): Promise<string> {
-  const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash', safetySettings: SAFETY_SETTINGS })
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-lite', safetySettings: SAFETY_SETTINGS })
   const imageParts = await prepareImageParts(imageUrls)
 
   const result = await model.generateContent([
