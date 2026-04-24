@@ -99,7 +99,7 @@ export async function extractExamQuestionsFromImages(
   const imageParts = await prepareImageParts(imageUrls)
   const result = await model.generateContent({
     contents: [{ role: 'user', parts: [...imageParts, { text: buildPrompt(subject, grade) + `\n\nBẮT BUỘC: Đếm và liệt kê TẤT CẢ câu hỏi có trong ${imageUrls.length} ảnh — KHÔNG được bỏ sót bất kỳ câu nào. Mỗi câu PHẢI có correct_answer và explanation. Nếu câu có hình vẽ: diagram={"bbox":[ymin,xmin,ymax,xmax],"image_index":số_ảnh} tọa độ 0-1000, KHÔNG sinh SVG.` }] }],
-    generationConfig: { maxOutputTokens: 16000 },
+    generationConfig: { maxOutputTokens: 24000, thinkingConfig: { thinkingBudget: 0 } } as never,
   })
   const raw = parseGeminiResponse(result.response.text())
   return raw
